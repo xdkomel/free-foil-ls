@@ -1,0 +1,37 @@
+entrypoints Program ;
+
+comment "//" ;
+comment "/*" "*/" ;
+
+token LangIdent ((letter | '_') (letter | digit | '_' | '-' | '!' | '?' | ':')*) ;
+
+separator LangIdent "," ;
+
+AProgram.  Program ::= [Decl] ;
+
+DeclFun. Decl ::= "fn" Name "(" [Name] ")" "{" [Statement] "}" ;
+separator Decl "" ;
+
+ReturnStatement. Statement ::= "return" Expr ;
+AssignStatement. Statement ::= Name "=" Expr ;
+ExprStatement.   Statement ::= Expr ;
+terminator Statement "" ;
+
+FnCall.       Expr ::= Name "(" [Expr] ")" ;
+
+ConstTrue.    Expr ::= "true" ;
+ConstFalse.   Expr ::= "false" ;
+ConstInt.     Expr ::= Integer ;
+ConstDouble.  Expr ::= Double ;
+Var.          Expr ::= Name ;
+
+Sum.          Expr ::= Expr "+" Expr ;
+Sub.          Expr ::= Expr "-" Expr ;
+Mul.          Expr ::= Expr "*" Expr ;
+Div.          Expr ::= Expr "/" Expr ;
+
+separator Expr "," ;
+
+HslsName. Name ::= LangIdent ;
+
+separator Name "," ;

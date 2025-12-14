@@ -1,0 +1,85 @@
+name:                free-foil-ls
+version:             0.1.0.0
+github:              "xdkomel/free-foil-ls"
+license:             BSD-3-Clause
+author:              "Kamil Foatov"
+maintainer:          "xdkomel@gmail.com"
+copyright:           "2025 Kamil Foatov"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/free-foil-ls#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+- -fno-defer-type-errors
+
+library:
+  source-dirs: src
+  exposed-modules:
+  - Lib
+  other-modules:
+  - Hsls.AbsHsls
+  - Hsls.LexHsls
+  - Hsls.ParHsls
+  - Hsls.PrintHsls
+  dependencies:
+  - lsp
+  - lsp-types
+  - lsp-test
+  - text
+  - transformers
+  - aeson
+  - Glob >=0.9.3
+  - array >=0.5.3.0
+  - stm >=2.5.0.0
+  - mtl >=2.2.2
+  - containers >=0.7
+  - lens >=4.17
+  - IntervalMap >= 0.6.2.1
+  # - free-foil >= 0.2.0
+  # - bifunctors
+  # - template-haskell
+  # - kind-generics-th >= 0.2.3.3
+
+executables:
+  free-foil-ls-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - free-foil-ls
+
+tests:
+  free-foil-ls-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - free-foil-ls
