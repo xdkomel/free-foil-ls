@@ -33,7 +33,7 @@ var client: LanguageClient;
 function activate(context: ExtensionContext) {
     // Define the server options
     // This is where you specify how to run YOUR executable
-    const exePath = "/Users/kf/Documents/projects/uni/free-foil-ls/.stack-work/install/aarch64-osx/70982a7eecf15e67766b45fc6128da8c786ff313ab6b3610af9fa33cdc3add26/9.10.3/bin/free-foil-ls-exe"
+    const exePath = "/Users/kf/Documents/projects/uni/free-foil-ls/.stack-work/install/aarch64-osx/eb4a84564335184ca4a01fe1e2bed2f3937be59b7711381f2136c8e5abacfabd/9.10.3/bin/free-foil-ls-exe"
 	// const exePath = binPath + "/hs-ls";
 
     const serverOptions = {
@@ -51,21 +51,21 @@ function activate(context: ExtensionContext) {
     // Define the client options
     // This specifies which files will trigger the language server
     const clientOptions = {
-        documentSelector: [{ scheme: 'file', language: 'hsls' }], // e.g., { language: 'python' }
+        documentSelector: [{ scheme: 'file', language: 'flan' }], // e.g., { language: 'python' }
         synchronize: {
             // Synchronize the settings section to the server
-            configurationSection: 'hsls',
+            configurationSection: 'flan',
             // Notify the server about file changes to contained files
             fileEvents: [
-                workspace.createFileSystemWatcher('**/*.hsls'),
+                workspace.createFileSystemWatcher('**/*.flan'),
             ]
         }
     };
 
     // Create the language client
     client = new LanguageClient(
-        'hsls', // A unique ID for your server
-        'hsls', // The name that will be shown in the output
+        'flan', // A unique ID for your server
+        'flan', // The name that will be shown in the output
         serverOptions,
         clientOptions
     );

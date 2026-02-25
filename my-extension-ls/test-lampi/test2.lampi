@@ -1,0 +1,14 @@
+compute
+  (λ A . λ ty . ty)
+    (Π (y : B) → B)
+    (λ ll . ll)
+  : Π (w : B) → B
+  
+compute
+  (λ p. λ y. w) y
+  : Π (w : A) → B
+
+compute
+  (λ (x, ( y , z)). y) ( ( (λ a . a) , (λ b. λ a. b, λ b. λ i. i)) )
+  : λ p. p
+

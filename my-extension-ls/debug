@@ -1,15 +1,236 @@
 Initialized
-fromList [("/Users/kf/Documents/projects/uni/hs-ls/src/test/a.hsls",HslsProgramStore {ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "identity")) [HslsName (Just (1,14)) (LangIdent "a")] [ReturnLocalDecl (Just (1,19)) (Var (Just (1,26)) (HslsName (Just (1,26)) (LangIdent "a")))],DeclFun (Just (3,1)) (HslsName (Just (3,4)) (LangIdent "fun2")) [HslsName (Just (3,10)) (LangIdent "a"),HslsName (Just (3,13)) (LangIdent "b")] [AssignLocalDecl (Just (4,5)) (Var (Just (4,5)) (HslsName (Just (4,5)) (LangIdent "c"))) (Sum (Just (4,9)) (ConstInt (Just (4,9)) 3) (ConstInt (Just (4,13)) 5)),ReturnLocalDecl (Just (5,5)) (Sum (Just (5,12)) (Var (Just (5,12)) (HslsName (Just (5,12)) (LangIdent "a"))) (Sub (Just (5,16)) (Var (Just (5,16)) (HslsName (Just (5,16)) (LangIdent "b"))) (Var (Just (5,20)) (HslsName (Just (5,20)) (LangIdent "c")))))]], colsIM = fromList [([4,4],NameNode (HslsName (Just (1,4)) (LangIdent "identity"))),([5,5],NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([10,10],NameNode (HslsName (Just (3,10)) (LangIdent "a"))),([12,12],NameNode (HslsName (Just (5,12)) (LangIdent "a"))),([13,13],NameNode (HslsName (Just (3,13)) (LangIdent "b"))),([14,14],NameNode (HslsName (Just (1,14)) (LangIdent "a"))),([16,16],NameNode (HslsName (Just (5,16)) (LangIdent "b"))),([20,20],NameNode (HslsName (Just (5,20)) (LangIdent "c"))),([26,26],NameNode (HslsName (Just (1,26)) (LangIdent "a")))], rowsIM = fromList [([1,2],NameNode (HslsName (Just (1,14)) (LangIdent "a"))),([1,9],NameNode (HslsName (Just (1,4)) (LangIdent "identity"))),([3,4],NameNode (HslsName (Just (3,10)) (LangIdent "a"))),([3,7],NameNode (HslsName (Just (3,4)) (LangIdent "fun2"))),([4,5],NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([5,6],NameNode (HslsName (Just (5,12)) (LangIdent "a")))]}),("/Users/kf/Documents/projects/uni/hs-ls/src/test/b.hsls",HslsProgramStore {ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "test")) [HslsName (Just (1,10)) (LangIdent "a"),HslsName (Just (1,13)) (LangIdent "b"),HslsName (Just (1,16)) (LangIdent "c")] [AssignLocalDecl (Just (2,5)) (Var (Just (2,5)) (HslsName (Just (2,5)) (LangIdent "a"))) (ConstInt (Just (2,9)) 10),AssignLocalDecl (Just (3,5)) (Var (Just (3,5)) (HslsName (Just (3,5)) (LangIdent "b"))) (ConstTrue (Just (3,9))),AssignLocalDecl (Just (4,5)) (Var (Just (4,5)) (HslsName (Just (4,5)) (LangIdent "c"))) (Var (Just (4,9)) (HslsName (Just (4,9)) (LangIdent "a"))),ReturnLocalDecl (Just (5,5)) (Div (Just (5,12)) (Var (Just (5,12)) (HslsName (Just (5,12)) (LangIdent "a"))) (Var (Just (5,16)) (HslsName (Just (5,16)) (LangIdent "b"))))]], colsIM = fromList [([4,4],NameNode (HslsName (Just (1,4)) (LangIdent "test"))),([5,5],NameNode (HslsName (Just (2,5)) (LangIdent "a"))),([9,9],NameNode (HslsName (Just (4,9)) (LangIdent "a"))),([10,10],NameNode (HslsName (Just (1,10)) (LangIdent "a"))),([12,12],NameNode (HslsName (Just (5,12)) (LangIdent "a"))),([13,13],NameNode (HslsName (Just (1,13)) (LangIdent "b"))),([16,16],NameNode (HslsName (Just (1,16)) (LangIdent "c")))], rowsIM = fromList [([1,2],NameNode (HslsName (Just (1,10)) (LangIdent "a"))),([1,5],NameNode (HslsName (Just (1,4)) (LangIdent "test"))),([2,3],NameNode (HslsName (Just (2,5)) (LangIdent "a"))),([3,4],NameNode (HslsName (Just (3,5)) (LangIdent "b"))),([4,5],NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([5,6],NameNode (HslsName (Just (5,12)) (LangIdent "a")))]}),("/Users/kf/Documents/projects/uni/hs-ls/src/test/c.hsls",HslsProgramStore {ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "fun3")) [HslsName (Just (1,10)) (LangIdent "a"),HslsName (Just (1,13)) (LangIdent "b")] [ReturnLocalDecl (Just (1,18)) (Sub (Just (1,25)) (Var (Just (1,25)) (HslsName (Just (1,25)) (LangIdent "a"))) (Var (Just (1,29)) (HslsName (Just (1,29)) (LangIdent "b"))))]], colsIM = fromList [([4,4],NameNode (HslsName (Just (1,4)) (LangIdent "fun3"))),([10,10],NameNode (HslsName (Just (1,10)) (LangIdent "a"))),([13,13],NameNode (HslsName (Just (1,13)) (LangIdent "b"))),([25,25],NameNode (HslsName (Just (1,25)) (LangIdent "a"))),([29,29],NameNode (HslsName (Just (1,29)) (LangIdent "b")))], rowsIM = fromList [([1,2],NameNode (HslsName (Just (1,10)) (LangIdent "a"))),([1,5],NameNode (HslsName (Just (1,4)) (LangIdent "fun3")))]})]
+fromList [("/Users/kf/Documents/projects/uni/free-foil-ls/my-extension-ls/test-lampi/test2.lampi","[\"(\λ x0 . \λ x1 . x1) (\\928 (x0 : unknown tree branch replaced by this variable) \\8594 unknown tree branch replaced by this variable) (\λ x0 . x0)\",\"\\928 (x0 : unknown tree branch replaced by this variable) \\8594 unknown tree branch replaced by this variable\"]\n")]
 
-Initialized
-fromList [("/Users/kf/Documents/projects/uni/hs-ls/src/test/a.hsls",HslsProgramStore {
-    ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "identity")) [HslsName (Just (1,14)) (LangIdent "a")] [ReturnLocalDecl (Just (1,19)) (Var (Just (1,26)) (HslsName (Just (1,26)) (LangIdent "a")))],DeclFun (Just (3,1)) (HslsName (Just (3,4)) (LangIdent "fun2")) [HslsName (Just (3,10)) (LangIdent "a"),HslsName (Just (3,13)) (LangIdent "b")] [AssignLocalDecl (Just (4,5)) (Var (Just (4,5)) (HslsName (Just (4,5)) (LangIdent "c"))) (Sum (Just (4,9)) (ConstInt (Just (4,9)) 3) (ConstInt (Just (4,13)) 5)),ReturnLocalDecl (Just (5,5)) (Sum (Just (5,12)) (Var (Just (5,12)) (HslsName (Just (5,12)) (LangIdent "a"))) (Sub (Just (5,16)) (Var (Just (5,16)) (HslsName (Just (5,16)) (LangIdent "b"))) (Var (Just (5,20)) (HslsName (Just (5,20)) (LangIdent "c")))))]], 
-    colsIM = fromList [([4,8],NameNode (HslsName (Just (3,4)) (LangIdent "fun2"))),([4,12],NameNode (HslsName (Just (1,4)) (LangIdent "identity"))),([5,6],NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([10,11],NameNode (HslsName (Just (3,10)) (LangIdent "a"))),([12,13],NameNode (HslsName (Just (5,12)) (LangIdent "a"))),([13,14],NameNode (HslsName (Just (3,13)) (LangIdent "b"))),([14,15],NameNode (HslsName (Just (1,14)) (LangIdent "a"))),([16,17],NameNode (HslsName (Just (5,16)) (LangIdent "b"))),([20,21],NameNode (HslsName (Just (5,20)) (LangIdent "c"))),([26,27],NameNode (HslsName (Just (1,26)) (LangIdent "a")))], 
-    rowsIM = fromList [([1,1],NameNode (HslsName (Just (1,4)) (LangIdent "identity"))),([3,3],NameNode (HslsName (Just (3,4)) (LangIdent "fun2"))),([4,4],NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([5,5],NameNode (HslsName (Just (5,12)) (LangIdent "a")))]}),("/Users/kf/Documents/projects/uni/hs-ls/src/test/b.hsls",HslsProgramStore {ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "test")) [HslsName (Just (1,10)) (LangIdent "a"),HslsName (Just (1,13)) (LangIdent "b"),HslsName (Just (1,16)) (LangIdent "c")] [AssignLocalDecl (Just (2,5)) (Var (Just (2,5)) (HslsName (Just (2,5)) (LangIdent "a"))) (ConstInt (Just (2,9)) 10),AssignLocalDecl (Just (3,5)) (Var (Just (3,5)) (HslsName (Just (3,5)) (LangIdent "b"))) (ConstTrue (Just (3,9))),AssignLocalDecl (Just (4,5)) (Var (Just (4,5)) (HslsName (Just (4,5)) (LangIdent "c"))) (Var (Just (4,9)) (HslsName (Just (4,9)) (LangIdent "a"))),ReturnLocalDecl (Just (5,5)) (Div (Just (5,12)) (Var (Just (5,12)) (HslsName (Just (5,12)) (LangIdent "a"))) (Var (Just (5,16)) (HslsName (Just (5,16)) (LangIdent "b"))))]], colsIM = fromList [([4,8],NameNode (HslsName (Just (1,4)) (LangIdent "test"))),([5,6],NameNode (HslsName (Just (2,5)) (LangIdent "a"))),([9,10],NameNode (HslsName (Just (4,9)) (LangIdent "a"))),([10,11],NameNode (HslsName (Just (1,10)) (LangIdent "a"))),([12,13],NameNode (HslsName (Just (5,12)) (LangIdent "a"))),([13,14],NameNode (HslsName (Just (1,13)) (LangIdent "b"))),([16,17],NameNode (HslsName (Just (1,16)) (LangIdent "c")))], rowsIM = fromList [([1,1],NameNode (HslsName (Just (1,4)) (LangIdent "test"))),([2,2],NameNode (HslsName (Just (2,5)) (LangIdent "a"))),([3,3],NameNode (HslsName (Just (3,5)) (LangIdent "b"))),([4,4],NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([5,5],NameNode (HslsName (Just (5,12)) (LangIdent "a")))]}),("/Users/kf/Documents/projects/uni/hs-ls/src/test/c.hsls",HslsProgramStore {ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "fun3")) [HslsName (Just (1,10)) (LangIdent "a"),HslsName (Just (1,13)) (LangIdent "b")] [ReturnLocalDecl (Just (1,18)) (Sub (Just (1,25)) (Var (Just (1,25)) (HslsName (Just (1,25)) (LangIdent "a"))) (Var (Just (1,29)) (HslsName (Just (1,29)) (LangIdent "b"))))]], colsIM = fromList [([4,8],NameNode (HslsName (Just (1,4)) (LangIdent "fun3"))),([10,11],NameNode (HslsName (Just (1,10)) (LangIdent "a"))),([13,14],NameNode (HslsName (Just (1,13)) (LangIdent "b"))),([25,26],NameNode (HslsName (Just (1,25)) (LangIdent "a"))),([29,30],NameNode (HslsName (Just (1,29)) (LangIdent "b")))], rowsIM = fromList [([1,1],NameNode (HslsName (Just (1,4)) (LangIdent "fun3")))]})]
+InitializedfromList [("/Users/kf/Documents/projects/uni/free-foil-ls/my-extension-ls/test-lampi/test2.lampi","fromList [(2,fromList [([16,2],\"x1\")]),(3,fromList [([13,1],\"B\"),([18,1],\"B\")]),(4,fromList [([12,2],\"x0\")]),(5,fromList [([12,1],\"B\"),([17,1],\"B\")])]\n")]
+
+InitializedfromList [("/Users/kf/Documents/projects/uni/free-foil-ls/my-extension-ls/test-lampi/test2.lampi","fromList [(2,fromList [([16,18),\"x1\")]),(3,fromList [([13,14),\"B\"),([18,19),\"B\")]),(4,fromList [([12,14),\"x0\")]),(5,fromList [([12,13),\"B\"),([17,18),\"B\")])]\n")]
+
+InitializedfromList [("/Users/kf/Documents/projects/uni/free-foil-ls/my-extension-ls/test-lampi/test2.lampi","fromList [(2,fromList [([16,18),\"ASTAnn {maybeNamePosition = Just (2,16), maybeNameDef = Just (2,[12,13))}\")]),(4,fromList [([12,14),\"ASTAnn {maybeNamePosition = Just (4,12), maybeNameDef = Just (4,[8,9))}\")])]\n")]
+
+InitializedfromList [("/Users/kf/Documents/projects/uni/free-foil-ls/my-extension-ls/test-lampi/test2.lampi","fromList [(2,fromList [([16,18),\"ASTAnn {maybeNamePosition = Just (2,16), maybeNameDef = Just (2,[12,13))}\")]),(4,fromList [([12,14),\"ASTAnn {maybeNamePosition = Just (4,12), maybeNameDef = Just (4,[8,9))}\")])]\n")]
+
+(Nothing,λ x0 . λ x1 . x1)
+(Just (Just (2,12)),λ x0 . λ x1 . x1)
+(Just (Just (2,6)),λ x0 . λ x1 . x1)
+(Just (Just (3,9)),\928 (x0 : B) \8594 B)
+(Nothing,λ x0 . x0)
+(Just (Just (4,8)),λ x0 . x0)
+(Just (Just (5,8)),\928 (x0 : B) \8594 B)
 
 
-Initialized
-fromList [("/Users/kf/Documents/projects/uni/hs-ls/src/test/a.hsls",HslsProgramStore {
-    ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "identity")) [HslsName (Just (1,14)) (LangIdent "a")] [ReturnLocalDecl (Just (1,19)) (Var (Just (1,26)) (HslsName (Just (1,26)) (LangIdent "a")))],DeclFun (Just (3,1)) (HslsName (Just (3,4)) (LangIdent "fun2")) [HslsName (Just (3,10)) (LangIdent "a"),HslsName (Just (3,13)) (LangIdent "b")] [AssignLocalDecl (Just (4,5)) (Var (Just (4,5)) (HslsName (Just (4,5)) (LangIdent "c"))) (Sum (Just (4,9)) (ConstInt (Just (4,9)) 3) (ConstInt (Just (4,13)) 5)),ReturnLocalDecl (Just (5,5)) (Sum (Just (5,12)) (Var (Just (5,12)) (HslsName (Just (5,12)) (LangIdent "a"))) (Sub (Just (5,16)) (Var (Just (5,16)) (HslsName (Just (5,16)) (LangIdent "b"))) (Var (Just (5,20)) (HslsName (Just (5,20)) (LangIdent "c")))))]], 
-    colsIM = fromList [([4,8),NameNode (HslsName (Just (3,4)) (LangIdent "fun2"))),([4,12),NameNode (HslsName (Just (1,4)) (LangIdent "identity"))),([5,6),NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([10,11),NameNode (HslsName (Just (3,10)) (LangIdent "a"))),([12,13),NameNode (HslsName (Just (5,12)) (LangIdent "a"))),([13,14),NameNode (HslsName (Just (3,13)) (LangIdent "b"))),([14,15),NameNode (HslsName (Just (1,14)) (LangIdent "a"))),([16,17),NameNode (HslsName (Just (5,16)) (LangIdent "b"))),([20,21),NameNode (HslsName (Just (5,20)) (LangIdent "c"))),([26,27),NameNode (HslsName (Just (1,26)) (LangIdent "a")))], 
-    rowsIM = fromList [([1,1),NameNode (HslsName (Just (1,4)) (LangIdent "identity"))),([3,3),NameNode (HslsName (Just (3,4)) (LangIdent "fun2"))),([4,4),NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([5,5),NameNode (HslsName (Just (5,12)) (LangIdent "a")))]}),("/Users/kf/Documents/projects/uni/hs-ls/src/test/b.hsls",HslsProgramStore {ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "test")) [HslsName (Just (1,10)) (LangIdent "a"),HslsName (Just (1,13)) (LangIdent "b"),HslsName (Just (1,16)) (LangIdent "c")] [AssignLocalDecl (Just (2,5)) (Var (Just (2,5)) (HslsName (Just (2,5)) (LangIdent "a"))) (ConstInt (Just (2,9)) 10),AssignLocalDecl (Just (3,5)) (Var (Just (3,5)) (HslsName (Just (3,5)) (LangIdent "b"))) (ConstTrue (Just (3,9))),AssignLocalDecl (Just (4,5)) (Var (Just (4,5)) (HslsName (Just (4,5)) (LangIdent "c"))) (Var (Just (4,9)) (HslsName (Just (4,9)) (LangIdent "a"))),ReturnLocalDecl (Just (5,5)) (Div (Just (5,12)) (Var (Just (5,12)) (HslsName (Just (5,12)) (LangIdent "a"))) (Var (Just (5,16)) (HslsName (Just (5,16)) (LangIdent "b"))))]], colsIM = fromList [([4,8),NameNode (HslsName (Just (1,4)) (LangIdent "test"))),([5,6),NameNode (HslsName (Just (2,5)) (LangIdent "a"))),([9,10),NameNode (HslsName (Just (4,9)) (LangIdent "a"))),([10,11),NameNode (HslsName (Just (1,10)) (LangIdent "a"))),([12,13),NameNode (HslsName (Just (5,12)) (LangIdent "a"))),([13,14),NameNode (HslsName (Just (1,13)) (LangIdent "b"))),([16,17),NameNode (HslsName (Just (1,16)) (LangIdent "c")))], rowsIM = fromList [([1,1),NameNode (HslsName (Just (1,4)) (LangIdent "test"))),([2,2),NameNode (HslsName (Just (2,5)) (LangIdent "a"))),([3,3),NameNode (HslsName (Just (3,5)) (LangIdent "b"))),([4,4),NameNode (HslsName (Just (4,5)) (LangIdent "c"))),([5,5),NameNode (HslsName (Just (5,12)) (LangIdent "a")))]}),("/Users/kf/Documents/projects/uni/hs-ls/src/test/c.hsls",HslsProgramStore {ast = AProgram (Just (1,1)) [DeclFun (Just (1,1)) (HslsName (Just (1,4)) (LangIdent "fun3")) [HslsName (Just (1,10)) (LangIdent "a"),HslsName (Just (1,13)) (LangIdent "b")] [ReturnLocalDecl (Just (1,18)) (Sub (Just (1,25)) (Var (Just (1,25)) (HslsName (Just (1,25)) (LangIdent "a"))) (Var (Just (1,29)) (HslsName (Just (1,29)) (LangIdent "b"))))]], colsIM = fromList [([4,8),NameNode (HslsName (Just (1,4)) (LangIdent "fun3"))),([10,11),NameNode (HslsName (Just (1,10)) (LangIdent "a"))),([13,14),NameNode (HslsName (Just (1,13)) (LangIdent "b"))),([25,26),NameNode (HslsName (Just (1,25)) (LangIdent "a"))),([29,30),NameNode (HslsName (Just (1,29)) (LangIdent "b")))], rowsIM = fromList [([1,1),NameNode (HslsName (Just (1,4)) (LangIdent "fun3")))]})]
+(Nothing,\955 x0 . \955 x1 . x1 =>= \955 x1 . x1 =>= x1)
+(Just (Just (2,12)),\955 x0 . \955 x1 . x1 =>= \955 x1 . x1)
+(Just (Just (2,6)),\955 x0 . \955 x1 . x1)
+(Just (Just (3,9)),\928 (x0 : B) \8594 B)
+(Nothing,\955 x0 . x0 =>= x0)
+(Just (Just (4,8)),\955 x0 . x0)
+(Just (Just (5,8)),\928 (x0 : B) \8594 B)
+
+(Nothing,\955 x0 . \955 x1 . x1 =>= \955 x1 . x1 =>= x1)
+(Just (Just (2,12)),\955 x0 . \955 x1 . x1 =>= \955 x1 . x1)(Just (Just (2,6)),\955 x0 . \955 x1 . x1)
+(Just (Just (3,9)),\928 (x0 : B) \8594 B)
+(Nothing,\955 x0 . x0 =>= x0)
+(Just (Just (4,8)),\955 x0 . x0)
+(Just (Just (5,8)),\928 (x0 : B) \8594 B)
+(Nothing,\955 x0 . x0 =>= x0)
+(Just (Just (8,31)),\955 x0 . x0)
+(Nothing,\955 x0 . \955 x1 . x0 =>= \955 x1 . x0 =>= x0)
+(Just (Just (8,48)),\955 x0 . \955 x1 . x0 =>= \955 x1 . x0)
+(Just (Just (8,43)),\955 x0 . \955 x1 . x0)
+(Nothing,\955 x0 . \955 x1 . x1 =>= \955 x1 . x1 =>= x1)
+(Just (Just (8,61)),\955 x0 . \955 x1 . x1 =>= \955 x1 . x1)
+(Just (Just (8,56)),\955 x0 . \955 x1 . x1)
+(Nothing,\955 x0 . x0 =>= x0)
+(Just (Just (9,7)),\955 x0 . x0)
+
+[(λ x0 . λ x1 . x) (Π (x0 : B) → B) (λ x0 . z),Π (x0 : B) → B,(λ x0 . λ x1 . x) y,Π (x0 : A) → B,unsupported tree branch replaced by this variable ((λ x0 . a, (λ x0 . λ x1 . b, λ x0 . λ x1 . a))),λ x0 . x]
+
+Just 0 at (12,16)
+
+Definitions: 
+Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent "x1")) (AScopedTerm (Just (2,12)) (Var (Just (2,16)) (VarIdent "x"))); 
+Lam (Just (8,11)) (PatternVar (Just (8,11)) (VarIdent "x1")) (AScopedTerm (Just (8,11)) (Var (Just (8,14)) (VarIdent "x"))); 
+Lam (Just (12,48)) (PatternVar (Just (12,48)) (VarIdent "x1")) (AScopedTerm (Just (12,48)) (Var (Just (12,51)) (VarIdent "b"))); 
+Lam (Just (12,61)) (PatternVar (Just (12,61)) (VarIdent "x1")) (AScopedTerm (Just (12,61)) (Var (Just (12,64)) (VarIdent "a")));
+
+Language server for '.lampi' is initialized with cache: 
+
+fromList [("/Users/kf/Documents/projects/uni/free-foil-ls/my-extension-ls/test-lampi/test2.lampi","compute (\955 x0 . \955 x1 . x) (\928 (x0 : B) \8594 B) (\955 x0 . z) : \928 (x0 : B) \8594 B;\ncompute (\955 x0 . \955 x1 . x) y : \928 (x0 : A) \8594 B;\ncompute [unsupported tree branch] ((\955 x0 . a, (\955 x0 . \955 x1 . b, \955 x0 . \955 x1 . a))) : \955 x0 . x;")]
+
+
+Language server for '.lampi' is initialized with cache: 
+
+AProgram (Just (1,1)) [
+CommandCompute (Just (1,1)) (App (Just (2,3)) (App (Just (2,3)) (Lam (Just (2,6)) (PatternVar (Just (2,6)) (VarIdent \"x0\")) (AScopedTerm (Just (2,6)) (Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent \"x1\")) (AScopedTerm (Just (2,12)) (Var (Just (2,16)) (VarIdent \"x\")))))) (Pi (Just (3,9)) (PatternVar (Just (3,9)) (VarIdent \"x0\")) (Var (Just (3,13)) (VarIdent \"B\")) (AScopedTerm (Just (3,9)) (Var (Just (3,18)) (VarIdent \"B\"))))) (Lam (Just (4,8)) (PatternVar (Just (4,8)) (VarIdent \"x0\")) (AScopedTerm (Just (4,8)) (Var (Just (4,12)) (VarIdent \"z\"))))) (Pi (Just (5,8)) (PatternVar (Just (5,8)) (VarIdent \"x0\")) (Var (Just (5,12)) (VarIdent \"B\")) (AScopedTerm (Just (5,8)) (Var (Just (5,17)) (VarIdent \"B\")))),
+
+CommandCompute (Just (7,1)) (
+App (Just (8,3)) 
+    (Lam (Just (8,6)) 
+    (PatternVar (Just (8,6)) (VarIdent \"x0\")) 
+    ( AScopedTerm (Just (8,6)) 
+        (Lam (Just (8,11)) 
+        (PatternVar (Just (8,11)) (VarIdent \"x1\")) 
+        ( AScopedTerm (Just (8,11)) 
+            (Var (Just (8,14)) (VarIdent \"x\"))
+        )
+    )
+)) (Var (Just (8,17)) (VarIdent \"y\"))) (Pi (Just (9,8)) (PatternVar (Just (9,8)) (VarIdent \"x0\")) (Var (Just (9,12)) (VarIdent \"A\")) (AScopedTerm (Just (9,8)) (Var (Just (9,17)) (VarIdent \"B\")))),
+
+CommandCompute (Just (11,1)) (App (Just (12,3)) (Var (Just (12,6)) (VarIdent \"[unsupported tree branch]\")) (Pair (Just (12,26)) (Lam (Just (12,31)) (PatternVar (Just (12,31)) (VarIdent \"x0\")) (AScopedTerm (Just (12,31)) (Var (Just (12,35)) (VarIdent \"a\")))) (Pair (Just (12,40)) (Lam (Just (12,43)) (PatternVar (Just (12,43)) (VarIdent \"x0\")) (AScopedTerm (Just (12,43)) (Lam (Just (12,48)) (PatternVar (Just (12,48)) (VarIdent \"x1\")) (AScopedTerm (Just (12,48)) (Var (Just (12,51)) (VarIdent \"b\")))))) (Lam (Just (12,56)) (PatternVar (Just (12,56)) (VarIdent \"x0\")) (AScopedTerm (Just (12,56)) (Lam (Just (12,61)) (PatternVar (Just (12,61)) (VarIdent \"x1\")) (AScopedTerm (Just (12,61)) (Var (Just (12,64)) (VarIdent \"a\"))))))))) (Lam (Just (13,7)) (PatternVar (Just (13,7)) (VarIdent \"x0\")) (AScopedTerm (Just (13,7)) (Var (Just (13,10)) (VarIdent \"x\"))))]"
+
+Definitions: 
+Lam (Just (12,48)) (PatternVar (Just (12,48)) (VarIdent "x1")) (AScopedTerm (Just (12,48)) (Var (Just (12,51)) (VarIdent "b"))) at Just (Just (12,48))
+
+Lam (Just (12,61)) (PatternVar (Just (12,61)) (VarIdent "x1")) (AScopedTerm (Just (12,61)) (Var (Just (12,64)) (VarIdent "a"))) at Just (Just (12,61))
+
+at (12,64)
+
+
+---
+
+Lam (Just (2,6)) (PatternVar (Just (2,6)) (VarIdent "x0")) (AScopedTerm (Just (2,6)) (Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent "x1")) (AScopedTerm (Just (2,12)) (Var (Just (2,16)) (VarIdent "x")))))
+
+Lam (Just (2,6)) (PatternVar (Just (2,6)) (VarIdent "x0")) (AScopedTerm (Just (2,6)) (Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent "x1")) (AScopedTerm (Just (2,12)) (Var (Just (2,16)) (VarIdent "x"))))) 
+➡️ Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent "x1")) (AScopedTerm (Just (2,12)) (Var (Just (2,16)) (VarIdent "x")))
+
+Lam (Just (2,6)) (PatternVar (Just (2,6)) (VarIdent "x0")) (AScopedTerm (Just (2,6)) (Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent "x1")) (AScopedTerm (Just (2,12)) (Var (Just (2,16)) (VarIdent "x")))))
+➡️ Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent "x1")) (AScopedTerm (Just (2,12)) (Var (Just (2,16)) (VarIdent "x")))
+➡️ Var (Just (2,16)) (VarIdent "x")
+
+Pi (Just (3,9)) (PatternVar (Just (3,9)) (VarIdent "x0")) (Var (Just (3,13)) (VarIdent "B")) (AScopedTerm (Just (3,9)) (Var (Just (3,18)) (VarIdent "B")))
+
+Lam (Just (4,8)) (PatternVar (Just (4,8)) (VarIdent "x0")) (AScopedTerm (Just (4,8)) (Var (Just (4,12)) (VarIdent "z")))
+
+Lam (Just (4,8)) (PatternVar (Just (4,8)) (VarIdent "x0")) (AScopedTerm (Just (4,8)) (Var (Just (4,12)) (VarIdent "z")))
+➡️ Var (Just (4,12)) (VarIdent "z")
+
+
+App (Just (2,3)) (App (Just (2,3)) (Lam (Just (2,6)) (PatternVar (Just (2,6)) (VarIdent "A")) (AScopedTerm (Just (2,6)) (Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent "x")) (AScopedTerm (Just (2,12)) (Var (Just (2,16)) (VarIdent "x")))))) (Pi (Just (3,9)) (PatternVar (Just (3,9)) (VarIdent "y")) (Var (Just (3,13)) (VarIdent "[unbound B]")) (AScopedTerm (Just (3,9)) (Var (Just (3,18)) (VarIdent "[unbound B]"))))) (Lam (Just (4,8)) (PatternVar (Just (4,8)) (VarIdent "z")) (AScopedTerm (Just (4,8)) (Var (Just (4,12)) (VarIdent "z"))))","\n\nPi (Just (5,8)) (PatternVar (Just (5,8)) (VarIdent "w")) (Var (Just (5,12)) (VarIdent "[unbound B]")) (AScopedTerm (Just (5,8)) (Var (Just (5,17)) (VarIdent "[unbound B]")))
+    
+App (Just (8,3)) (Lam (Just (8,6)) (PatternVar (Just (8,6)) (VarIdent "x")) (AScopedTerm (Just (8,6)) (Lam (Just (8,11)) (PatternVar (Just (8,11)) (VarIdent "y")) (AScopedTerm (Just (8,11)) (Var (Just (8,14)) (VarIdent "x")))))) (Var (Just (8,17)) (VarIdent "[unbound y]"))","\n\nPi (Just (9,8)) (PatternVar (Just (9,8)) (VarIdent "w")) (Var (Just (9,12)) (VarIdent "[unbound A]")) (AScopedTerm (Just (9,8)) (Var (Just (9,17)) (VarIdent "[unbound B]")))
+    
+App (Just (12,3)) (Var (Just (12,6)) (VarIdent "[unsupported]")) (Pair (Just (12,26)) (Lam (Just (12,31)) (PatternVar (Just (12,31)) (VarIdent "a")) (AScopedTerm (Just (12,31)) (Var (Just (12,35)) (VarIdent "a")))) (Pair (Just (12,40)) (Lam (Just (12,43)) (PatternVar (Just (12,43)) (VarIdent "b")) (AScopedTerm (Just (12,43)) (Lam (Just (12,48)) (PatternVar (Just (12,48)) (VarIdent "a")) (AScopedTerm (Just (12,48)) (Var (Just (12,51)) (VarIdent "b")))))) (Lam (Just (12,56)) (PatternVar (Just (12,56)) (VarIdent "b")) (AScopedTerm (Just (12,56)) (Lam (Just (12,61)) (PatternVar (Just (12,61)) (VarIdent "a")) (AScopedTerm (Just (12,61)) (Var (Just (12,64)) (VarIdent "a"))))))))","\n\nLam (Just (13,7)) (PatternVar (Just (13,7)) (VarIdent "x")) (AScopedTerm (Just (13,7)) (Var (Just (13,10)) (VarIdent "x")))
+
+
+
+
+----
+
+Telescopes: 
+
+Lam (Just (2,6)) (PatternVar (Just (2,6)) (VarIdent "A")) (AScopedTerm (Just (2,6)) (Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent "ty")) (AScopedTerm (Just (2,12)) (Var (Just (2,17)) (VarIdent "ty"))))) >> 0 >> [
+    "Lam (Just (2,12)) (PatternVar (Just (2,12)) (VarIdent \"ty\")) (AScopedTerm (Just (2,12)) (Var (Just (2,17)) (VarIdent \"ty\"))) >> 1 >> [
+        \"Var (Just (2,17)) (VarIdent \\\"ty\\\")\"]"]
+
+Pi (Just (3,9)) (PatternVar (Just (3,9)) (VarIdent "y")) (Var (Just (3,13)) (VarIdent "[unbound B]")) (AScopedTerm (Just (3,9)) (Var (Just (3,18)) (VarIdent "[unbound B]"))) >> 0 >> []
+
+Lam (Just (4,8)) (PatternVar (Just (4,8)) (VarIdent "ll")) (AScopedTerm (Just (4,8)) (Var (Just (4,13)) (VarIdent "ll"))) >> 0 >> ["Var (Just (4,13)) (VarIdent \"ll\")"]
+
+
+
+Pi (Just (5,8)) (PatternVar (Just (5,8)) (VarIdent "w")) (Var (Just (5,12)) (VarIdent "[unbound B]")) (AScopedTerm (Just (5,8)) (Var (Just (5,17)) (VarIdent "[unbound B]"))) >> 0 >> []
+
+
+
+Lam (Just (8,6)) (PatternVar (Just (8,6)) (VarIdent "p")) (AScopedTerm (Just (8,6)) (Lam (Just (8,11)) (PatternVar (Just (8,11)) (VarIdent "y")) (AScopedTerm (Just (8,11)) (Var (Just (8,14)) (VarIdent "[unbound w]"))))) >> 0 >> ["Lam (Just (8,11)) (PatternVar (Just (8,11)) (VarIdent \"y\")) (AScopedTerm (Just (8,11)) (Var (Just (8,14)) (VarIdent \"[unbound w]\"))) >> 1 >> []"]
+
+
+
+Pi (Just (9,8)) (PatternVar (Just (9,8)) (VarIdent "w")) (Var (Just (9,12)) (VarIdent "[unbound A]")) (AScopedTerm (Just (9,8)) (Var (Just (9,17)) (VarIdent "[unbound B]"))) >> 0 >> []
+
+
+
+Lam (Just (12,31)) (PatternVar (Just (12,31)) (VarIdent "a")) (AScopedTerm (Just (12,31)) (Var (Just (12,35)) (VarIdent "a"))) >> 0 >> ["Var (Just (12,35)) (VarIdent \"a\")"]
+
+Lam (Just (12,43)) (PatternVar (Just (12,43)) (VarIdent "b")) (AScopedTerm (Just (12,43)) (Lam (Just (12,48)) (PatternVar (Just (12,48)) (VarIdent "a")) (AScopedTerm (Just (12,48)) (Var (Just (12,51)) (VarIdent "b"))))) >> 0 >> ["Lam (Just (12,48)) (PatternVar (Just (12,48)) (VarIdent \"a\")) (AScopedTerm (Just (12,48)) (Var (Just (12,51)) (VarIdent \"b\"))) >> 1 >> [\"Var (Just (12,51)) (VarIdent \\\"b\\\")\"]"]
+
+Lam (Just (12,56)) (PatternVar (Just (12,56)) (VarIdent "b")) (AScopedTerm (Just (12,56)) (Lam (Just (12,61)) (PatternVar (Just (12,61)) (VarIdent "i")) (AScopedTerm (Just (12,61)) (Var (Just (12,64)) (VarIdent "i"))))) >> 0 >> ["Lam (Just (12,61)) (PatternVar (Just (12,61)) (VarIdent \"i\")) (AScopedTerm (Just (12,61)) (Var (Just (12,64)) (VarIdent \"i\"))) >> 1 >> [\"Var (Just (12,64)) (VarIdent \\\"i\\\")\"]"]
+
+
+
+Lam (Just (13,7)) (PatternVar (Just (13,7)) (VarIdent "p")) (AScopedTerm (Just (13,7)) (Var (Just (13,10)) (VarIdent "p"))) >> 0 >> ["Var (Just (13,10)) (VarIdent \"p\")"]
+
+
+
+
+
+---
+
+USAGES:
+Name was not found! Name was not found! Name was not found! Name was not found! 
+Lam (Just (12,48)) (PatternVar (Just (12,48)) (VarIdent "a")) (AScopedTerm (Just (12,48)) (Var (Just (12,51)) (VarIdent "b"))) => [] 
+Lam (Just (12,61)) (PatternVar (Just (12,61)) (VarIdent "i")) (AScopedTerm (Just (12,61)) (Var (Just (12,64)) (VarIdent "i"))) => ["Var (Just (12,64)) (VarIdent \"i\")"] Name was not found!
+
+
+--- Attempt 1
+
+AProgram (NodeBinding (ATypedPattern (PatternVar (VarIdent "sum")) 
+    (FunType 
+        (FunType 
+            (ValType (VarIdent "Int")) 
+            (ValType (VarIdent "Int"))
+        ) 
+        (ValType (VarIdent "Int"))
+    )
+) (Lam (UntypedPattern (PatternVar (VarIdent "a"))) (Lam (UntypedPattern (PatternVar (VarIdent "b"))) (App (App (Var (VarIdent "sum")) (Var (VarIdent "a"))) (Var (VarIdent "b"))))) (LeafBinding (Var (VarIdent "sum"))))
+
+--- Attempt 2
+
+AProgram (NodeBinding (ATypedPattern (PatternVar (VarIdent "sum")) 
+(FunType 
+    (ValType (VarIdent "Int")) 
+    (FunType 
+        (ValType (VarIdent "Int")) 
+        (ValType (VarIdent "Int"))
+    )
+)
+) (Lam (UntypedPattern (PatternVar (VarIdent "a"))) (Lam (UntypedPattern (PatternVar (VarIdent "b"))) (App (App (Var (VarIdent "sum")) (Var (VarIdent "a"))) (Var (VarIdent "b"))))) (LeafBinding (Var (VarIdent "sum"))))
+
+AProgram (NodeBinding (ATypedPattern (PatternVar (VarIdent "modifyIntWith")) 
+(FunType 
+    (FunType 
+        (ValType (VarIdent "Int")) 
+        (ValType (VarIdent "Int"))
+    ) 
+    (FunType 
+        (ValType (VarIdent "Int")) 
+        (ValType (VarIdent "Int"))
+    )
+
+)) (Lam (UntypedPattern (PatternVar (VarIdent "fun"))) (Var (VarIdent "fun"))) (LeafBinding (Var (VarIdent "main"))))
+
+
+--- Attempt 3
+
+AProgram (
+    Let [
+        LetBinding 
+            (ATypedPattern (PatternVar (VarIdent "sum")) 
+                (FunType (ValType (VarIdent "Int")) (FunType (ValType (VarIdent "Int")) (ValType (VarIdent "Int"))))) 
+            (Lam (UntypedPattern (PatternVar (VarIdent "a"))) (Lam (UntypedPattern (PatternVar (VarIdent "b"))) (App (App (Var (VarIdent "sum")) (Var (VarIdent "a"))) (Var (VarIdent "b"))))),
+        LetBinding 
+            (ATypedPattern (PatternVar (VarIdent "strFits")) 
+                (FunType (ValType (VarIdent "Str")) (FunType (ValType (VarIdent "Int")) (ValType (VarIdent "Bool"))))) 
+            (Lam (ATypedPattern (PatternVar (VarIdent "word")) (ValType (VarIdent "Str"))) (Let [LetBinding (ATypedPattern (PatternVar (VarIdent "length")) (ValType (VarIdent "Int"))) (App (Var (VarIdent "len")) (Var (VarIdent "word")))] (Lam (UntypedPattern (PatternVar (VarIdent "n"))) (App (App (Var (VarIdent "leq")) (Var (VarIdent "length"))) (Var (VarIdent "n")))))),
+        LetBinding 
+            (ATypedPattern (PatternVar (VarIdent "askForBeer")) 
+                (FunType (ValType (VarIdent "Int")) (ValType (VarIdent "Str")))) 
+            (Lam (UntypedPattern (PatternVar (VarIdent "age"))) (If (App (App (Var (VarIdent "geq")) (Var (VarIdent "age"))) (ConstInt 18)) (ConstStr "Yes") (ConstStr "No"))),
+        LetBinding 
+            (UntypedPattern (PatternVar (VarIdent "askForBeerInfer"))) 
+            (Lam (UntypedPattern (PatternVar (VarIdent "age"))) (If (App (App (Var (VarIdent "geq")) (Var (VarIdent "age"))) (ConstInt 18)) (ConstStr "Yes") (ConstStr "No"))),
+        LetBinding 
+            (ATypedPattern (PatternVar (VarIdent "modifyIntWith")) 
+                (FunType (FunType (ValType (VarIdent "Int")) (ValType (VarIdent "Int"))) (FunType (ValType (VarIdent "Int")) (ValType (VarIdent "Int"))))) 
+            (Lam (UntypedPattern (PatternVar (VarIdent "fun"))) (Var (VarIdent "fun"))),
+        LetBinding 
+            (ATypedPattern (PatternVar (VarIdent "second")) 
+                (FunType (FunType (ValType (VarIdent "Int")) (ValType (VarIdent "Int"))) (FunType (PairType (ValType (VarIdent "Int")) (ValType (VarIdent "Int"))) (PairType (ValType (VarIdent "Int")) (ValType (VarIdent "Int")))))) 
+            (Lam (UntypedPattern (PatternVar (VarIdent "f"))) (Lam (UntypedPattern (PatternPair (PatternVar (VarIdent "a")) (PatternVar (VarIdent "b")))) (Pair (Var (VarIdent "a")) (App (Var (VarIdent "f")) (Var (VarIdent "b")))))),
+        LetBinding 
+            (ATypedPattern (PatternVar (VarIdent "secondAlt")) 
+                (FunType (FunType (ValType (VarIdent "Int")) (ValType (VarIdent "Int"))) (FunType (PairType (ValType (VarIdent "Int")) (ValType (VarIdent "Int"))) (PairType (ValType (VarIdent "Int")) (ValType (VarIdent "Int")))))) 
+            (Lam (UntypedPattern (PatternVar (VarIdent "f"))) (Lam (UntypedPattern (PatternVar (VarIdent "pair"))) (Let [LetBinding (UntypedPattern (PatternPair (PatternVar (VarIdent "a")) (PatternVar (VarIdent "b")))) (Var (VarIdent "pair"))] (Pair (Var (VarIdent "a")) (App (Var (VarIdent "f")) (Var (VarIdent "b")))))))
+    ] 
+    (ConstInt 0)
+)

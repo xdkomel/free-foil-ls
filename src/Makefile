@@ -14,12 +14,12 @@ ALEX_OPTS  = --ghc
 
 # Default goal.
 
-all : Hsls/TestHsls
+all : Flan/Test
 
 # Rules for building the parser.
 
-Hsls/AbsHsls.hs Hsls/LexHsls.x Hsls/ParHsls.y Hsls/PrintHsls.hs Hsls/TestHsls.hs : Hsls.cf
-	bnfc --haskell -p Hsls --functor Hsls.cf
+Flan/Abs.hs Flan/Lex.x Flan/Par.y Flan/Print.hs Flan/Test.hs : Flan.cf
+	bnfc --haskell -d --functor Flan.cf
 
 %.hs : %.y
 	${HAPPY} ${HAPPY_OPTS} $<
@@ -27,16 +27,16 @@ Hsls/AbsHsls.hs Hsls/LexHsls.x Hsls/ParHsls.y Hsls/PrintHsls.hs Hsls/TestHsls.hs
 %.hs : %.x
 	${ALEX} ${ALEX_OPTS} $<
 
-Hsls/TestHsls : Hsls/AbsHsls.hs Hsls/LexHsls.hs Hsls/ParHsls.hs Hsls/PrintHsls.hs Hsls/TestHsls.hs
+Flan/Test : Flan/Abs.hs Flan/Lex.hs Flan/Par.hs Flan/Print.hs Flan/Test.hs
 	${GHC} ${GHC_OPTS} $@
 
 # Rules for cleaning generated files.
 
 clean :
-	-rm -f Hsls/*.hi Hsls/*.o Hsls/*.log Hsls/*.aux Hsls/*.dvi
+	-rm -f Flan/*.hi Flan/*.o Flan/*.log Flan/*.aux Flan/*.dvi
 
 distclean : clean
-	-rm -f Hsls/AbsHsls.hs Hsls/AbsHsls.hs.bak Hsls/ComposOp.hs Hsls/ComposOp.hs.bak Hsls/DocHsls.txt Hsls/DocHsls.txt.bak Hsls/ErrM.hs Hsls/ErrM.hs.bak Hsls/LayoutHsls.hs Hsls/LayoutHsls.hs.bak Hsls/LexHsls.x Hsls/LexHsls.x.bak Hsls/ParHsls.y Hsls/ParHsls.y.bak Hsls/PrintHsls.hs Hsls/PrintHsls.hs.bak Hsls/SkelHsls.hs Hsls/SkelHsls.hs.bak Hsls/TestHsls.hs Hsls/TestHsls.hs.bak Hsls/XMLHsls.hs Hsls/XMLHsls.hs.bak Hsls/ASTHsls.agda Hsls/ASTHsls.agda.bak Hsls/ParserHsls.agda Hsls/ParserHsls.agda.bak Hsls/IOLib.agda Hsls/IOLib.agda.bak Hsls/Main.agda Hsls/Main.agda.bak Hsls/Hsls.dtd Hsls/Hsls.dtd.bak Hsls/TestHsls Hsls/LexHsls.hs Hsls/ParHsls.hs Hsls/ParHsls.info Hsls/ParDataHsls.hs Makefile
-	-rmdir -p Hsls/
+	-rm -f Flan/Abs.hs Flan/Abs.hs.bak Flan/ComposOp.hs Flan/ComposOp.hs.bak Flan/Doc.txt Flan/Doc.txt.bak Flan/ErrM.hs Flan/ErrM.hs.bak Flan/Layout.hs Flan/Layout.hs.bak Flan/Lex.x Flan/Lex.x.bak Flan/Par.y Flan/Par.y.bak Flan/Print.hs Flan/Print.hs.bak Flan/Skel.hs Flan/Skel.hs.bak Flan/Test.hs Flan/Test.hs.bak Flan/XML.hs Flan/XML.hs.bak Flan/AST.agda Flan/AST.agda.bak Flan/Parser.agda Flan/Parser.agda.bak Flan/IOLib.agda Flan/IOLib.agda.bak Flan/Main.agda Flan/Main.agda.bak Flan/Flan.dtd Flan/Flan.dtd.bak Flan/Test Flan/Lex.hs Flan/Par.hs Flan/Par.info Flan/ParData.hs Makefile
+	-rmdir -p Flan/
 
 # EOF

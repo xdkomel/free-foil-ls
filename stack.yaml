@@ -40,7 +40,14 @@ packages:
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
-# extra-deps: []
+extra-deps: 
+- kind-generics-th-0.2.3.3@sha256:c53280116db0dab9891f5a531679073f0b1f9ba6b8a3399bca11d98c506d0c62,1578
+# - free-foil-0.2.0@sha256:7f99c518a63ff314c7c8ca9776625e22ef56c5170593b52c82fea6f461ac753b,3300
+- ../free-foil/haskell/free-foil
+# - git: https://github.com/fizruk/free-foil.git
+#   commit: 649d306dc277617f2b4664f53c7be7863881cd1e
+#   subdirs:
+#   - haskell/free-foil
 
 # Override default flag values for project packages and extra-deps
 # flags: {}

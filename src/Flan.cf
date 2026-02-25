@@ -1,0 +1,34 @@
+comment "--" ;
+comment "{-" "-}" ;
+
+token VarIdent (letter | '_') (letter | digit | '_' | '\'')* ;
+
+AProgram. Program ::= Term ;
+
+LetBinding. Binding ::= "|" TypedPattern "=" Term ;
+
+terminator Binding "" ;
+
+Let. Term ::= [Binding] "\\" Term ;
+Lam. Term ::= "/" TypedPattern "=>" Term ;
+App. Term1 ::= Term1 Term2 ;
+If. Term ::= "if" Term "then" Term "else" Term ;
+Pair. Term ::= "[" Term "," Term "]" ;
+Var. Term3 ::= VarIdent ;
+ConstTrue. Term3 ::= "True" ;
+ConstFalse. Term3 ::= "False" ;
+ConstInt. Term3 ::= Integer ;
+ConstStr. Term3 ::= String ;
+coercions Term 3 ;
+
+ATypedPattern. TypedPattern ::= Pattern ":" FlanType ;
+UntypedPattern. TypedPattern ::= Pattern ;
+
+PatternVar. Pattern ::= VarIdent ;
+PatternPair. Pattern ::= "[" Pattern "," Pattern "]" ;
+PatternWildcard. Pattern ::= "_" ;
+
+ValType. FlanType2 ::= VarIdent ;
+FunType. FlanType1 ::= FlanType1 "->" FlanType ;
+PairType. FlanType1 ::= "[" FlanType "," FlanType "]" ;
+coercions FlanType 2 ;

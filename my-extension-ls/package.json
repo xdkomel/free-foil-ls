@@ -10,19 +10,18 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:hsls"
+    "onLanguage:flan"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
-        "id": "hsls",
+        "id": "flan",
         "aliases": [
-          "hsls",
-          "hsls"
+          "flan"
         ],
         "extensions": [
-          ".hsls"
+          ".flan"
         ]
       }
     ]

@@ -1,0 +1,24 @@
+| sum: Int -> Int -> Int = /a => /b => sum a b
+
+-- This is a comment
+| strFits: Str -> Int -> Bool = /word: Str =>
+    | length: Int = len word 
+    \ /n => leq length n
+
+| askForBeer: Int -> Str = /age =>
+    if geq age 18
+        then "Yes"
+        else "No"
+
+| askForBeerInfer = /age => if geq age 18 then "Yes" else "No"
+
+| modifyIntWith: (Int -> Int) -> Int -> Int = /fun => fun
+
+| second: (Int -> Int) -> [Int, Int] -> [Int, Int] = /f => /[a, b] => [a, f b]
+
+| secondAlt: (Int -> Int) -> [Int, Int] -> [Int, Int] = /f => /pair => 
+    | [a, b] = pair
+    | pairCopy = pair
+    \ [a, f b]
+
+\ 0

@@ -38,11 +38,32 @@ library:
   source-dirs: src
   exposed-modules:
   - Lib
+  - BasicLS.BasicLS
+  - FoilLS.LanguageServerCache
+  - FoilLS.FoilLS
+  - AgnosticFoilLS.AgnosticLS
+  - AgnosticFoilLS.AgnosticLSLambdaPi
+  - AgnosticFoilLSAlt.AgnosticFoilLSAlt
+  - AgnosticFoilLSAlt.LambdaPiLSAlt
+  - AgnosticLanguageServer.AgnosticLanguageServer
+  - AgnosticLanguageServer.AgnosticLanguageServerFlan
+  - Common.LambdaPi
+  - Common.Flan
+  - Common.LanguageServerCache
   other-modules:
   - Hsls.AbsHsls
   - Hsls.LexHsls
   - Hsls.ParHsls
   - Hsls.PrintHsls
+  - Lampi.AbsLampi
+  - Lampi.LayoutLampi
+  - Lampi.LexLampi
+  - Lampi.ParLampi
+  - Lampi.PrintLampi
+  - Flan.Abs
+  - Flan.Lex
+  - Flan.Par
+  - Flan.Print
   dependencies:
   - lsp
   - lsp-types
@@ -57,10 +78,12 @@ library:
   - containers >=0.7
   - lens >=4.17
   - IntervalMap >= 0.6.2.1
-  # - free-foil >= 0.2.0
-  # - bifunctors
-  # - template-haskell
-  # - kind-generics-th >= 0.2.3.3
+  - free-foil 
+  - bifunctors
+  - template-haskell
+  - kind-generics-th 
+  ghc-options:
+  - -fno-defer-type-errors
 
 executables:
   free-foil-ls-exe:
@@ -70,6 +93,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -fno-defer-type-errors
     dependencies:
     - free-foil-ls
 
