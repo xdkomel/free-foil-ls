@@ -49,6 +49,7 @@ library:
   - AgnosticLanguageServer.AgnosticLanguageServerFlan
   - Common.LambdaPi
   - Common.Flan
+  - Common.FlanConversion
   - Common.LanguageServerCache
   other-modules:
   - Hsls.AbsHsls
@@ -82,6 +83,7 @@ library:
   - bifunctors
   - template-haskell
   - kind-generics-th 
+  - sort
   ghc-options:
   - -fno-defer-type-errors
 

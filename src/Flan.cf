@@ -5,15 +5,27 @@ token VarIdent (letter | '_') (letter | digit | '_' | '\'')* ;
 
 AProgram. Program ::= Term ;
 
-LetBinding. Binding ::= "|" TypedPattern "=" Term ;
+LetBinding. Binding ::= "|" TypedPattern LetEq Term ;
+ALetEq. LetEq ::= "=" ;
 
 terminator Binding "" ;
 
-Let. Term ::= [Binding] "\\" Term ;
-Lam. Term ::= "/" TypedPattern "=>" Term ;
+Let. Term ::= [Binding] LetIn Term ;
+ALetIn. LetIn ::= "\\" ;
+
+Lam. Term ::= "/" TypedPattern LamArrow Term ;
+ALamArrow. LamArrow ::= "=>";
+
 App. Term1 ::= Term1 Term2 ;
-If. Term ::= "if" Term "then" Term "else" Term ;
-Pair. Term ::= "[" Term "," Term "]" ;
+
+If. Term ::= "if" Term ThenKW Term ElseKW Term ;
+IfThenKW. ThenKW ::= "then" ;
+IfElseKW. ElseKW ::= "else" ;
+
+Pair. Term ::= "[" Term PairComma Term ClosingBracket ;
+APairComma. PairComma ::= "," ;
+PairClosingBracket. ClosingBracket ::= "]" ;
+
 Var. Term3 ::= VarIdent ;
 ConstTrue. Term3 ::= "True" ;
 ConstFalse. Term3 ::= "False" ;
@@ -21,14 +33,28 @@ ConstInt. Term3 ::= Integer ;
 ConstStr. Term3 ::= String ;
 coercions Term 3 ;
 
-ATypedPattern. TypedPattern ::= Pattern ":" FlanType ;
+ATypedPattern. TypedPattern ::= Pattern TypedPatternColon FlanType ;
+ATypedPatternColon. TypedPatternColon ::= ":"  ;
+
 UntypedPattern. TypedPattern ::= Pattern ;
 
 PatternVar. Pattern ::= VarIdent ;
-PatternPair. Pattern ::= "[" Pattern "," Pattern "]" ;
+
+PatternPair. Pattern ::= "[" Pattern PatternPairComma Pattern PatternPairClosingBracket ;
+APatternPairComma. PatternPairComma ::= "," ;
+APatternPairClosingBracket. PatternPairClosingBracket ::= "]" ;
+
 PatternWildcard. Pattern ::= "_" ;
 
+AnyType. FlanType2 ::= "_" ;
+
 ValType. FlanType2 ::= VarIdent ;
-FunType. FlanType1 ::= FlanType1 "->" FlanType ;
-PairType. FlanType1 ::= "[" FlanType "," FlanType "]" ;
+
+FunType. FlanType1 ::= FlanType1 FunTypeArrow FlanType ;
+AFunTypeArrow. FunTypeArrow ::= "->" ;
+
+PairType. FlanType1 ::= "[" FlanType PairTypeComma FlanType PairTypeClosingBracket ;
+APairTypeComma. PairTypeComma ::= "," ;
+APairTypeClosingBracket. PairTypeClosingBracket ::= "]" ;
+
 coercions FlanType 2 ;

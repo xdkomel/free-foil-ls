@@ -46,7 +46,7 @@ $white+ ;
     { tok (eitherResIdent TV) }
 
 -- token VarIdent
-$l ([\' \_]| ($d | $l)) *
+(\_ | $l)([\' \_]| ($d | $l)) *
     { tok (eitherResIdent T_VarIdent) }
 
 -- Keywords and Ident

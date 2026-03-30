@@ -23,16 +23,21 @@ data Program' a = AProgram a (Term' a)
   deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
 
 type Binding = Binding' BNFC'Position
-data Binding' a = LetBinding a (TypedPattern' a) (Term' a)
+data Binding' a
+    = LetBinding a (TypedPattern' a) (LetEq' a) (Term' a)
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type LetEq = LetEq' BNFC'Position
+data LetEq' a = ALetEq a
   deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
 
 type Term = Term' BNFC'Position
 data Term' a
-    = Let a [Binding' a] (Term' a)
-    | Lam a (TypedPattern' a) (Term' a)
+    = Let a [Binding' a] (LetIn' a) (Term' a)
+    | Lam a (TypedPattern' a) (LamArrow' a) (Term' a)
     | App a (Term' a) (Term' a)
-    | If a (Term' a) (Term' a) (Term' a)
-    | Pair a (Term' a) (Term' a)
+    | If a (Term' a) (ThenKW' a) (Term' a) (ElseKW' a) (Term' a)
+    | Pair a (Term' a) (PairComma' a) (Term' a) (ClosingBracket' a)
     | Var a VarIdent
     | ConstTrue a
     | ConstFalse a
@@ -40,24 +45,73 @@ data Term' a
     | ConstStr a String
   deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
 
+type LetIn = LetIn' BNFC'Position
+data LetIn' a = ALetIn a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type LamArrow = LamArrow' BNFC'Position
+data LamArrow' a = ALamArrow a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type ThenKW = ThenKW' BNFC'Position
+data ThenKW' a = IfThenKW a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type ElseKW = ElseKW' BNFC'Position
+data ElseKW' a = IfElseKW a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type PairComma = PairComma' BNFC'Position
+data PairComma' a = APairComma a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type ClosingBracket = ClosingBracket' BNFC'Position
+data ClosingBracket' a = PairClosingBracket a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
 type TypedPattern = TypedPattern' BNFC'Position
 data TypedPattern' a
-    = ATypedPattern a (Pattern' a) (FlanType' a)
+    = ATypedPattern a (Pattern' a) (TypedPatternColon' a) (FlanType' a)
     | UntypedPattern a (Pattern' a)
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type TypedPatternColon = TypedPatternColon' BNFC'Position
+data TypedPatternColon' a = ATypedPatternColon a
   deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
 
 type Pattern = Pattern' BNFC'Position
 data Pattern' a
     = PatternVar a VarIdent
-    | PatternPair a (Pattern' a) (Pattern' a)
+    | PatternPair a (Pattern' a) (PatternPairComma' a) (Pattern' a) (PatternPairClosingBracket' a)
     | PatternWildcard a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type PatternPairComma = PatternPairComma' BNFC'Position
+data PatternPairComma' a = APatternPairComma a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type PatternPairClosingBracket = PatternPairClosingBracket' BNFC'Position
+data PatternPairClosingBracket' a = APatternPairClosingBracket a
   deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
 
 type FlanType = FlanType' BNFC'Position
 data FlanType' a
-    = ValType a VarIdent
-    | FunType a (FlanType' a) (FlanType' a)
-    | PairType a (FlanType' a) (FlanType' a)
+    = AnyType a
+    | ValType a VarIdent
+    | FunType a (FlanType' a) (FunTypeArrow' a) (FlanType' a)
+    | PairType a (FlanType' a) (PairTypeComma' a) (FlanType' a) (PairTypeClosingBracket' a)
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type FunTypeArrow = FunTypeArrow' BNFC'Position
+data FunTypeArrow' a = AFunTypeArrow a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type PairTypeComma = PairTypeComma' BNFC'Position
+data PairTypeComma' a = APairTypeComma a
+  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
+
+type PairTypeClosingBracket = PairTypeClosingBracket' BNFC'Position
+data PairTypeClosingBracket' a = APairTypeClosingBracket a
   deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
 
 newtype VarIdent = VarIdent String
@@ -84,35 +138,88 @@ instance HasPosition Program where
 
 instance HasPosition Binding where
   hasPosition = \case
-    LetBinding p _ _ -> p
+    LetBinding p _ _ _ -> p
+
+instance HasPosition LetEq where
+  hasPosition = \case
+    ALetEq p -> p
 
 instance HasPosition Term where
   hasPosition = \case
-    Let p _ _ -> p
-    Lam p _ _ -> p
+    Let p _ _ _ -> p
+    Lam p _ _ _ -> p
     App p _ _ -> p
-    If p _ _ _ -> p
-    Pair p _ _ -> p
+    If p _ _ _ _ _ -> p
+    Pair p _ _ _ _ -> p
     Var p _ -> p
     ConstTrue p -> p
     ConstFalse p -> p
     ConstInt p _ -> p
     ConstStr p _ -> p
 
+instance HasPosition LetIn where
+  hasPosition = \case
+    ALetIn p -> p
+
+instance HasPosition LamArrow where
+  hasPosition = \case
+    ALamArrow p -> p
+
+instance HasPosition ThenKW where
+  hasPosition = \case
+    IfThenKW p -> p
+
+instance HasPosition ElseKW where
+  hasPosition = \case
+    IfElseKW p -> p
+
+instance HasPosition PairComma where
+  hasPosition = \case
+    APairComma p -> p
+
+instance HasPosition ClosingBracket where
+  hasPosition = \case
+    PairClosingBracket p -> p
+
 instance HasPosition TypedPattern where
   hasPosition = \case
-    ATypedPattern p _ _ -> p
+    ATypedPattern p _ _ _ -> p
     UntypedPattern p _ -> p
+
+instance HasPosition TypedPatternColon where
+  hasPosition = \case
+    ATypedPatternColon p -> p
 
 instance HasPosition Pattern where
   hasPosition = \case
     PatternVar p _ -> p
-    PatternPair p _ _ -> p
+    PatternPair p _ _ _ _ -> p
     PatternWildcard p -> p
+
+instance HasPosition PatternPairComma where
+  hasPosition = \case
+    APatternPairComma p -> p
+
+instance HasPosition PatternPairClosingBracket where
+  hasPosition = \case
+    APatternPairClosingBracket p -> p
 
 instance HasPosition FlanType where
   hasPosition = \case
+    AnyType p -> p
     ValType p _ -> p
-    FunType p _ _ -> p
-    PairType p _ _ -> p
+    FunType p _ _ _ -> p
+    PairType p _ _ _ _ -> p
+
+instance HasPosition FunTypeArrow where
+  hasPosition = \case
+    AFunTypeArrow p -> p
+
+instance HasPosition PairTypeComma where
+  hasPosition = \case
+    APairTypeComma p -> p
+
+instance HasPosition PairTypeClosingBracket where
+  hasPosition = \case
+    APairTypeClosingBracket p -> p
 

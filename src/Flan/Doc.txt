@@ -22,7 +22,7 @@ except ``"`` unless preceded by ``\``.
 
 
 VarIdent literals are recognized by the regular expression
-`````letter (["'_"] | digit | letter)*`````
+`````('_' | letter) (["'_"] | digit | letter)*`````
 
 
 ===Reserved words and symbols===
@@ -48,16 +48,23 @@ and **eps** (empty rule) belong to the BNF notation.
 All other symbols are terminals.
 
   | //Program// | -> | //Term//
-  | //Binding// | -> | ``|`` //TypedPattern// ``=`` //Term//
+  | //Binding// | -> | ``|`` //TypedPattern// //LetEq// //Term//
+  | //LetEq// | -> | ``=``
   | //[Binding]// | -> | **eps**
   |  |  **|**  | //Binding// //[Binding]//
-  | //Term// | -> | //[Binding]// ``\`` //Term//
-  |  |  **|**  | ``/`` //TypedPattern// ``=>`` //Term//
-  |  |  **|**  | ``if`` //Term// ``then`` //Term// ``else`` //Term//
-  |  |  **|**  | ``[`` //Term// ``,`` //Term// ``]``
+  | //Term// | -> | //[Binding]// //LetIn// //Term//
+  |  |  **|**  | ``/`` //TypedPattern// //LamArrow// //Term//
+  |  |  **|**  | ``if`` //Term// //ThenKW// //Term// //ElseKW// //Term//
+  |  |  **|**  | ``[`` //Term// //PairComma// //Term// //ClosingBracket//
   |  |  **|**  | //Term1//
+  | //LetIn// | -> | ``\``
+  | //LamArrow// | -> | ``=>``
   | //Term1// | -> | //Term1// //Term2//
   |  |  **|**  | //Term2//
+  | //ThenKW// | -> | ``then``
+  | //ElseKW// | -> | ``else``
+  | //PairComma// | -> | ``,``
+  | //ClosingBracket// | -> | ``]``
   | //Term3// | -> | //VarIdent//
   |  |  **|**  | ``True``
   |  |  **|**  | ``False``
@@ -65,16 +72,23 @@ All other symbols are terminals.
   |  |  **|**  | //String//
   |  |  **|**  | ``(`` //Term// ``)``
   | //Term2// | -> | //Term3//
-  | //TypedPattern// | -> | //Pattern// ``:`` //FlanType//
+  | //TypedPattern// | -> | //Pattern// //TypedPatternColon// //FlanType//
   |  |  **|**  | //Pattern//
+  | //TypedPatternColon// | -> | ``:``
   | //Pattern// | -> | //VarIdent//
-  |  |  **|**  | ``[`` //Pattern// ``,`` //Pattern// ``]``
+  |  |  **|**  | ``[`` //Pattern// //PatternPairComma// //Pattern// //PatternPairClosingBracket//
   |  |  **|**  | ``_``
-  | //FlanType2// | -> | //VarIdent//
+  | //PatternPairComma// | -> | ``,``
+  | //PatternPairClosingBracket// | -> | ``]``
+  | //FlanType2// | -> | ``_``
+  |  |  **|**  | //VarIdent//
   |  |  **|**  | ``(`` //FlanType// ``)``
-  | //FlanType1// | -> | //FlanType1// ``->`` //FlanType//
-  |  |  **|**  | ``[`` //FlanType// ``,`` //FlanType// ``]``
+  | //FlanType1// | -> | //FlanType1// //FunTypeArrow// //FlanType//
+  |  |  **|**  | ``[`` //FlanType// //PairTypeComma// //FlanType// //PairTypeClosingBracket//
   |  |  **|**  | //FlanType2//
+  | //FunTypeArrow// | -> | ``->``
+  | //PairTypeComma// | -> | ``,``
+  | //PairTypeClosingBracket// | -> | ``]``
   | //FlanType// | -> | //FlanType1//
 
 

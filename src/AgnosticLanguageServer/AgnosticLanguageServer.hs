@@ -21,79 +21,61 @@
 module AgnosticLanguageServer.AgnosticLanguageServer where
 
 import Common.LanguageServerCache
-import qualified Control.Monad.Foil.Relative as F
 import qualified Control.Monad.Foil.Internal as F
 import qualified Control.Monad.Free.Foil as F
 import Control.Arrow 
 import qualified Data.Map as Map
-import qualified Data.IntMap as IntMap
 import qualified Data.Text as T
 import Language.LSP.Protocol.Types 
 import Language.LSP.Protocol.Message 
 import Language.LSP.Server 
 import qualified Language.LSP.Protocol.Lens as LSP
 import Control.Monad.Reader
-import Control.Monad (unless)
 import Data.Functor ( void )
 import System.FilePath.Glob ( compile, globDir )
 import Control.Lens ( ( ^. ), ( # ) )
-import Data.Maybe (catMaybes, isJust)
-import Data.Coerce (coerce)
-import Data.Kind (Type)
-import Data.Bifoldable (Bifoldable)
-import Data.Bifunctor (Bifunctor)
-import Data.Bitraversable
-import Data.ZipMatchK.Generic (ZipMatchK)
+import Data.Maybe (catMaybes)
+import Data.Bifoldable (Bifoldable, bifoldMap, bifoldr)
+import Data.Bifunctor (Bifunctor, bimap)
 
 data SomeName binder sig where
-  SomeName :: F.Distinct n => F.Name n -> SomeName binder sig
+  SomeName :: F.Name n -> SomeName binder sig
 
-data TermTelescope binder sig n where
-  LeafTerm :: F.Distinct n 
-    => F.AST binder sig n 
-    -> TermTelescope binder sig n
-  NodeTerm :: (F.Distinct n, F.DExt n l, F.CoSinkable binder) 
-    => F.AST binder sig n 
-    -> binder n l 
-    -> [TermTelescope binder sig l]
-    -> TermTelescope binder sig n
-
-data SomeScopedAST binder sig where
-  SomeScopedAST :: F.Distinct n 
+data SomeScopeWithAST binder sig where
+  SomeScopeWithAST :: (F.Distinct n) 
     => F.Scope n 
     -> F.AST binder sig n 
-    -> SomeScopedAST binder sig
+    -> SomeScopeWithAST binder sig
 
-type FunBuildASTs binder sig = String -> [SomeScopedAST binder sig]
+type FunBuildASTs b s = String -> [SomeScopeWithAST b s]
 
-type FunFindNarrowest binder sig = (Int, Int) -> SomeScopedAST binder sig -> Maybe (SomeScopedAST binder sig)
+data SomeAST binder sig where
+  SomeAST :: (F.Distinct n)
+    => F.AST binder sig n
+    -> SomeAST binder sig
 
-type FunExtractName binder sig = SomeScopedAST binder sig -> Maybe (SomeName binder sig)
-
-type FunBuildTelescopes binder sig = forall n . F.Distinct n => F.Scope n -> F.AST binder sig n -> [TermTelescope binder sig n]
-
-type FunRange binder sig = SomeScopedAST binder sig -> Maybe Range
+data SomePattern binder sig where
+  SomePattern :: binder n l -> SomePattern binder sig
 
 data LSConfiguration binder sig = LSConfiguration
   { fileExtension :: String
   , buildAsts :: FunBuildASTs binder sig
-  , findNarrowest :: FunFindNarrowest binder sig
-  , extractName :: FunExtractName binder sig
-  , buildTelescopes :: FunBuildTelescopes binder sig
-  , findRange :: FunRange binder sig
   -- For logging
-  , printTerm :: SomeScopedAST binder sig -> String
+  , printTerm :: SomeAST binder sig -> String
   }
 
 maybeToEither :: a -> Maybe b -> Either a b
 maybeToEither l = maybe (Left l) Right
 
-firstJust :: [Maybe a] -> Maybe a
-firstJust (j@(Just _):_) = j
-firstJust (_:t) = firstJust t
-firstJust [] = Nothing
+firstJustL :: [Maybe a] -> Maybe a
+firstJustL (j@(Just _):_) = j
+firstJustL (_:t) = firstJustL t
+firstJustL [] = Nothing
 
-buildCache :: String -> FunBuildASTs binder sig -> LSP (SomeScopedAST binder sig) ()
+lastJustR :: Maybe a -> Maybe a -> Maybe a
+lastJustR = maybe id (const . Just)
+
+buildCache :: String -> FunBuildASTs binder sig -> LSP (SomeScopeWithAST binder sig) ()
 buildCache extension toAsts = do
   root <- getRootPath
   case root of
@@ -105,10 +87,7 @@ buildCache extension toAsts = do
       rawPaths <- liftIO $ globDir [compile ("*." ++ extension)] rootPath
       let paths = concat rawPaths
       asts <- liftIO $ mapM filePathToAst paths
-      let 
-        -- asts = concatMap unpackFilePathAstPair maybeAsts
-          cache = Map.fromList $ map (second astToCache) asts
-          -- cacheStr = show $ Map.map (printNode . SomeAST . langAst) cache
+      let cache = Map.fromList $ map (second astToCache) asts
       sendNotification SMethod_WindowShowMessage 
         $ ShowMessageParams MessageType_Info 
         $ T.pack 
@@ -122,208 +101,428 @@ buildCache extension toAsts = do
       return (f, toAsts input)
     astToCache n = LangProgramStore { langAst = n }
 
-symbolRange :: FunFindNarrowest binder sig 
-  -> FunRange binder sig 
-  -> (Int, Int) 
-  -> SomeScopedAST binder sig
-  -> Maybe Range
-symbolRange fFind fRange pos ast = do
-  narrowest <- fFind pos ast
-  fRange narrowest
+inRange :: Position -> Range -> Bool
+inRange (Position l c) (Range (Position x y) (Position x' y')) = 
+  let startsOK = if l == x then c >= y else True
+      endsOK = if l == x' then c <= y' else True
+  in l >= x && l <= x' && startsOK && endsOK
 
-definitionRange :: FunFindNarrowest binder sig 
-  -> FunExtractName binder sig
-  -> FunRange binder sig 
-  -> FunBuildTelescopes binder sig
-  -> (Int, Int) 
-  -> SomeScopedAST binder sig
-  -> Maybe Range
-definitionRange fFind fExtName fRange fBuildTele pos ast@(SomeScopedAST scope ast') = do
-  narrowest <- fFind pos ast
-  name' <- fExtName narrowest
-  let telescopes = fBuildTele scope ast'
-      -- usages = definingTerm termIsValid F.emptyScope name' telescope
-      -- usages :: [Maybe (SomeAST binder sig)]
-      usages = 
-        -- definingTerms termIsValid name' telescopes
-        -- [definingTerm termIsValid F.emptyScope name' t | t <- telescopes]
-        map (definingTerm termIsValid name' scope) telescopes
-  usage <- firstJust usages
-  fRange usage
+class Ranged sig where
+  range :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> Maybe Range
+  nameRange 
+    :: SomeName binder sig 
+    -> sig (F.ScopedAST binder sig n) (F.AST binder sig n) 
+    -> Maybe Range
+
+class RangedPattern pat where
+  foldrPat 
+    :: (SomePattern pat sig -> r -> r)
+    -> r
+    -> pat n l
+    -> r
+  rangePat :: pat n l -> Maybe Range
+  binderOf :: pat n l -> Maybe (F.NameBinder n l)
+
+
+findNarrowest :: 
+  ( Bifoldable sig
+  , Ranged sig
+  , F.CoSinkable binder
+  , RangedPattern binder
+  , F.Distinct n )
+  => Position 
+  -> F.AST binder sig n 
+  -> Maybe (Either (SomePattern binder sig, SomeAST binder sig) (SomeAST binder sig))
+findNarrowest = ((fmap fst) .) . findNarrowest'
   where
-    termIsValid = isJust . fFind pos
+    findNarrowest' :: 
+      ( Bifoldable sig
+      , Ranged sig
+      , F.CoSinkable binder
+      , RangedPattern binder
+      , F.Distinct n )
+      => Position 
+      -> F.AST binder sig n 
+      -> Maybe (Either (SomePattern binder sig, SomeAST binder sig) (SomeAST binder sig), Range)
+    findNarrowest' pos ast = do
+      sig <- case ast of
+        F.Var{} -> Nothing
+        F.Node s -> Just s
+      r <- range sig
+      if not $ inRange pos r 
+        then Nothing 
+        else 
+          let narr = narrowest pos
+          in bifoldr
+            (\(F.ScopedAST binder a) -> case F.assertDistinct binder of
+              F.Distinct -> 
+                let narrPat = 
+                      findNarrowestPat (SomeAST a) pos (SomePattern binder)
+                    narrNode = findNarrowest' pos a
+                in narr $ narr narrPat narrNode
+              )
+            (narr . findNarrowest' pos)
+            (Just (Right $ SomeAST ast, r))
+            sig
+    narrowest pos = \case
+      a@(Just (_, r)) -> if inRange pos r then const a else id
+      _ -> id
+    findNarrowestPat ast pos (SomePattern pat) = do
+      r <- rangePat pat
+      if not $ inRange pos r 
+        then Nothing
+        else foldrPat 
+          (\p -> maybe (findNarrowestPat ast pos p) Just) 
+          (Just (Left (SomePattern pat, ast), r)) 
+          pat
 
-mentionedRanges :: FunFindNarrowest binder sig 
-  -> FunExtractName binder sig
-  -> FunRange binder sig 
-  -> FunBuildTelescopes binder sig
-  -> (Int, Int) 
-  -> SomeScopedAST binder sig
+extractName :: (Bifoldable sig, F.Distinct n, F.CoSinkable binder)
+  => F.AST binder sig n -> Maybe (SomeName binder sig)
+extractName = \case
+  -- Valid, but this must be a wrapper-node, not a [Var] on its own
+  F.Var{} -> Nothing
+  F.Node n -> bifoldr extract' extract Nothing n
+  where
+    extract = \case
+      F.Var n -> const (Just $ SomeName n)
+      _ -> id
+    extract' (F.ScopedAST binder t) = case F.assertDistinct binder of
+      F.Distinct -> extract t
+
+nodeCovers :: Ranged sig 
+  => Position -> sig (F.ScopedAST binder sig m) (F.AST binder sig m) -> Bool
+nodeCovers pos = (maybe False (inRange pos)) . range
+
+patternNameRange :: (RangedPattern binder) 
+  => SomeName binder sig -> SomePattern binder sig -> Maybe Range
+patternNameRange sn@(SomeName name') (SomePattern pat) = case binderOf pat of
+  Just binder -> 
+    if F.nameId name' == F.nameId (F.nameOf binder)
+      then rangePat pat
+      else Nothing
+  _ -> foldrPat (\p -> maybe (patternNameRange sn p) Just) Nothing pat
+
+
+definitionRange :: 
+  ( Bifoldable sig
+  , Ranged sig
+  , F.CoSinkable binder
+  , RangedPattern binder )
+  => Position
+  -> SomeScopeWithAST binder sig
+  -> Maybe Range
+definitionRange pos (SomeScopeWithAST scope ast) = 
+  findNarrowest pos ast >>= \case
+    Left (SomePattern pat, _) -> rangePat pat
+    Right (SomeAST node) -> do
+      name' <- extractName node
+      (pat, _) <- findDefinition (nodeCovers pos) name' scope ast
+      patternNameRange name' pat
+
+mentionedRanges :: 
+  ( Bifoldable sig
+  , Ranged sig
+  , F.CoSinkable binder
+  , RangedPattern binder )
+  => Position
+  -> SomeScopeWithAST binder sig
   -> [Range]
-mentionedRanges fFind fExtName fRange fBuildTele pos ast@(SomeScopedAST scope ast') =
-  let narrowest = fFind pos ast
-      name' = narrowest >>= fExtName 
-      telescopes = fBuildTele scope ast'
-      usages = (\name'' -> 
-          catMaybes $ 
-            map (definingTerm termIsValid name'' scope) telescopes
-        ) <$> name' 
-  in maybe [] (catMaybes . map fRange) usages
+mentionedRanges pos (SomeScopeWithAST scope ast) = maybe [] id $ do
+  narrowest <- findNarrowest pos ast 
+  (name', pat, definition) <- case narrowest of
+    Left (sp@(SomePattern p), ast) -> fmap 
+      (\nb -> (SomeName $ F.nameOf nb, sp, ast)) $ binderOf p
+    Right (SomeAST node) -> do
+      name' <- extractName node
+      (pat, definition) <- findDefinition (nodeCovers pos) name' scope ast
+      Just (name', pat, definition)
+  let kidsRanges = catMaybes
+        $ map (nameRange' name') 
+        $ findRefs name' definition
+  Just
+    $ maybe kidsRanges (:kidsRanges) 
+    $ patternNameRange name' pat
   where
-    termIsValid = isJust . fFind pos
+    nameRange' :: Ranged sig 
+      => SomeName binder sig -> SomeAST binder sig -> Maybe Range
+    nameRange' name' (SomeAST ast') = case ast' of
+      F.Var{} -> Nothing
+      F.Node sig -> nameRange name' sig
 
-definingTerm :: (SomeScopedAST binder sig -> Bool) 
-  -> SomeName binder sig 
+findDefinition ::
+  ( F.Distinct n
+  , Bifoldable sig
+  , F.CoSinkable binder )
+  => (forall m . sig (F.ScopedAST binder sig m) (F.AST binder sig m) -> Bool)
+  -> SomeName binder sig
   -> F.Scope n
-  -> TermTelescope binder sig n
-  -> Maybe (SomeScopedAST binder sig)
-definingTerm _ (SomeName n) scope _ | n `F.member` scope = Nothing
-definingTerm _ _ _ LeafTerm{} = Nothing
-definingTerm _ _ _ (NodeTerm _ _ []) = Nothing
-definingTerm leafIsValid sn@(SomeName n) scope (NodeTerm term binder (scoped:siblings)) = 
-  let scope' = F.extendScopePattern binder scope
-      isValid = case scoped of
-        LeafTerm a -> leafIsValid $ SomeScopedAST scope' a
-        _ -> False
-  in if isValid && n `F.member` scope'
-    then Just (SomeScopedAST scope term)
-    else case definingTerm leafIsValid sn scope' scoped of
-      Nothing -> definingTerm leafIsValid sn scope (NodeTerm term binder siblings)
-      just@Just{} -> just
+  -> F.AST binder sig n
+  -> Maybe (SomePattern binder sig, SomeAST binder sig)
+findDefinition f sn@(SomeName n) scope ast
+  | n `F.member` scope = Nothing
+  | otherwise = findDefinition' f sn scope ast
 
-data Family binder sig = Family
-  { parent :: SomeScopedAST binder sig
-  , children :: [SomeScopedAST binder sig]
-  , name :: SomeName binder sig
-  }
-
-mentionsChildren :: F.Distinct n
-  => [SomeScopedAST binder sig]
-  -> FunExtractName binder sig
-  -> SomeName binder sig 
+findDefinition' ::
+  ( F.Distinct n
+  , Bifoldable sig
+  , F.CoSinkable binder )
+  => (forall m . sig (F.ScopedAST binder sig m) (F.AST binder sig m) -> Bool)
+  -> SomeName binder sig
   -> F.Scope n
-  -> TermTelescope binder sig n
-  -> [SomeScopedAST binder sig]
-mentionsChildren children fExtName sn scope (LeafTerm a)
-  | maybe False (namesEq sn) $ fExtName (SomeScopedAST scope a) = children ++ [SomeScopedAST scope a]
+  -> F.AST binder sig n
+  -> Maybe (SomePattern binder sig, SomeAST binder sig)
+findDefinition' isValid sn@(SomeName name') scope = \case
+  F.Var{} -> Nothing
+  F.Node sig -> bifoldr
+    (firstJust . defScoped sig)
+    (firstJust . findDefinition' isValid sn scope)
+    Nothing
+    sig
   where
-    namesEq (SomeName n1) (SomeName n2) = (coerce n1) == n2
-mentionsChildren children _ _ _ LeafTerm{} = children
-mentionsChildren children _ _ _ (NodeTerm _ _ []) = children
-mentionsChildren children extName name' scope (NodeTerm t binder (child:siblings)) =
-  let scope' = F.extendScopePattern binder scope
-      deep = mentionsChildren children extName name' scope' child
-      breadth = mentionsChildren children extName name' scope (NodeTerm t binder siblings)
-  in deep ++ breadth
+    firstJust = maybe id (const . Just)
+    defScoped sig (F.ScopedAST binder node') = 
+      case (F.assertDistinct binder, F.assertExt binder) of
+        (F.Distinct, F.Ext) ->
+          let scope' = F.extendScopePattern binder scope
+              member = name' `F.member` scope'
+              valid = case node' of
+                F.Var{} -> isValid sig
+                F.Node s -> isValid s
+          in case (valid, member) of
+            (False, _) -> Nothing
+            (_, False) -> findDefinition' isValid sn scope' node'
+            _ -> Just (SomePattern binder, SomeAST node')
+            
+findRefs :: (Bifoldable sig, F.CoSinkable binder)
+  => SomeName binder sig 
+  -> SomeAST binder sig
+  -> [SomeAST binder sig]
+findRefs sn (SomeAST ast) = case ast of
+  F.Var{} -> []
+  F.Node sig -> bifoldMap 
+    (\(F.ScopedAST binder a) -> case F.assertDistinct binder of
+      F.Distinct -> findRefs' sn a ) 
+    (findRefs' sn) 
+    sig
 
-nameFamily :: (F.Distinct n, F.ExtEndo n)
-  => FunExtractName binder sig
-  -> SomeName binder sig 
-  -> F.Scope n
-  -> TermTelescope binder sig n
-  -> Maybe (Family binder sig)
-nameFamily _ (SomeName n) scope _ | n `F.member` scope = Nothing
-nameFamily f someName extScope tt = nameFamily' f someName extScope tt
+findRefs' :: (F.Distinct m, Bifoldable sig, F.CoSinkable binder) 
+  => SomeName binder sig -> F.AST binder sig m -> [SomeAST binder sig]
+findRefs' sn ast = 
+  let grandKids = findRefs sn (SomeAST ast)
+  in maybe grandKids (:grandKids) $ do
+    name' <- extractName ast
+    if namesEq sn name' 
+      then Just $ SomeAST ast
+      else Nothing
+  where
+    namesEq (SomeName n) (SomeName n') = F.nameId n == F.nameId n'
 
-nameFamily' :: (F.Distinct n, F.ExtEndo n)
-  => FunExtractName binder sig
-  -> SomeName binder sig 
-  -> F.Scope n
-  -> TermTelescope binder sig n
-  -> Maybe (Family binder sig)
-nameFamily' f sn@(SomeName n) scope tt@(NodeTerm t binder (child:siblings)) =
-  let scope' = F.extendScopePattern binder scope
-  in if n `F.member` scope' 
-    then Just Family 
-      { parent = SomeScopedAST scope t
-      , children = mentionsChildren [] f sn scope tt
-      , name = sn
-      }
-    else 
-      let deepMentions = nameFamily' f sn scope' child
-          breadthMentions = nameFamily' f sn scope (NodeTerm t binder siblings)
-      in firstJust [deepMentions, breadthMentions]
-nameFamily' _ _ _ _ = Nothing
--- nameFamily 
--- nameFamily _ sn@(SomeName n) scope (NodeTerm t binder []) = 
---   let scope' = F.extendScopePattern binder scope
---   in if n `F.member` scope' 
---     then Just Family { parent = SomeScopedAST scope t, children = [], name = sn }
---     else Nothing
--- nameFamily extName sn@(SomeName n) scope tt@(NodeTerm t binder (child:siblings)) =
---   let scope' = F.extendScopePattern binder scope
---   in if n `F.member` scope' 
---     then Just Family 
---       { parent = SomeScopedAST scope t
---       , children = mentionsChildren [] extName sn scope tt
---       , name = sn
---       }
---     else 
---       let deepMentions = nameFamily extName sn scope' child
---           breadthMentions = nameFamily extName sn scope (NodeTerm t binder siblings)
---       in firstJust [deepMentions, breadthMentions]
--- nameFamily _ _ _ _ = Nothing     
+class TokenizableSig sig where
+  tokenize :: sig ScopedASTTokens ASTTokens -> [SemanticTokenAbsolute]
 
-handlers :: LSConfiguration binder sig -> Handlers (LSP (SomeScopedAST binder sig))
-handlers (LSConfiguration fileExtension buildAsts findNarrowest extractName buildTele findRange printTerm) =
+class TokenizablePattern pat where
+  tokenizePat :: pat n l -> [SemanticTokenAbsolute]
+
+placeholderTokenize :: sig -> [SemanticTokenAbsolute]
+placeholderTokenize _ = []
+
+type ASTTokens = [SemanticTokenAbsolute]
+type ScopedASTTokens = (ASTTokens, ASTTokens)
+
+tokenizeAST :: (Bifunctor sig, TokenizableSig sig, TokenizablePattern binder) 
+  => F.AST binder sig n 
+  -> [SemanticTokenAbsolute]
+tokenizeAST ast = case ast of
+  F.Var{} -> []
+  F.Node node -> tokenize $ bimap tokenizeScopedAST tokenizeAST node
+  where
+    tokenizeScopedAST (F.ScopedAST pat body) = (tokenizePat pat, tokenizeAST body)
+
+semanticTokens :: (Bifunctor sig, TokenizableSig sig, TokenizablePattern binder) 
+  => Handler (LSP (SomeScopeWithAST binder sig)) 'Method_TextDocumentSemanticTokensFull
+semanticTokens req responder = do
+  LangStore cache <- getCachedStore
+  let uri = req ^. LSP.params . LSP.textDocument . LSP.uri 
+      asts = maybe [] langAst $ (uriToFilePath uri) >>= (\x -> Map.lookup x cache)
+      tokens = concatMap tokenizeTree asts
+      encoded = encodeTokens defaultSemanticTokensLegend 
+        $ relativizeTokens tokens
+  either 
+    (\_ -> return ()) 
+    (responder . Right . InL . SemanticTokens Nothing)
+    encoded
+  where
+    tokenizeTree (SomeScopeWithAST _ a) = tokenizeAST a
+
+class Hoverable sig where
+  hoverData :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> [String]
+  hoverData = placeholderHoverData
+
+class HoverablePat pat where
+  hoverDataPat :: pat n l -> [String]
+
+placeholderHoverData _ = []
+
+showHover :: 
+  ( Bifoldable sig
+  , Hoverable sig
+  , HoverablePat binder
+  , DiagnosableSig sig
+  , Ranged sig
+  , F.CoSinkable binder
+  , RangedPattern binder )
+  => Handler (LSP (SomeScopeWithAST binder sig)) 'Method_TextDocumentHover
+showHover req responder = do
+  LangStore cache <- getCachedStore
+  let parameters = req ^. LSP.params
+      uri = parameters ^. LSP.textDocument . LSP.uri 
+      pos = parameters ^. LSP.position
+      
+      asts = maybe [] langAst $ (uriToFilePath uri) >>= (\x -> Map.lookup x cache)
+      hover = firstJustL $ map (hoverMessage pos) asts
+  maybe 
+    (return ()) 
+    (responder . Right . InL . toHover) 
+    hover
+  showDiagnostics uri
+  where
+    toHover (msg, range') = Hover (InL $ mkMarkdown $ T.pack msg) range'
+
+hoverMessage :: 
+  ( Bifoldable sig
+  , Hoverable sig
+  , HoverablePat binder
+  , Ranged sig
+  , F.CoSinkable binder
+  , RangedPattern binder )
+  => Position
+  -> SomeScopeWithAST binder sig 
+  -> Maybe (String, Maybe Range)
+hoverMessage p (SomeScopeWithAST _ ast) = do
+  narrowest <- findNarrowest p ast
+  let (hd, maybeRange) = case narrowest of
+        Right (SomeAST (F.Node sig)) -> (hoverData sig, range sig)
+        Left (SomePattern pat, _) -> (hoverDataPat pat, rangePat pat)
+        _ -> ([], Nothing)
+  if null hd
+    then Nothing 
+    else Just 
+      $ ( concatMap (\l -> "- " ++ l ++ "\n\n") hd
+        , maybeRange )
+
+class DiagnosableSig sig where
+  diagnose :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> [Diagnostic]
+  diagnose = placeholderDiagnose
+
+placeholderDiagnose _ = []
+
+showDiagnostics :: (F.CoSinkable binder, Bifoldable sig, DiagnosableSig sig)
+  => Uri
+  -> LSP (SomeScopeWithAST binder sig) ()
+showDiagnostics uri = do
+  LangStore cache <- getCachedStore
+  sendNotification SMethod_WindowShowMessage 
+    $ ShowMessageParams MessageType_Info 
+    $ T.pack 
+    $ "[showDiagnostics] called with cache length: " ++ show (length cache)
+  let asts = maybe [] langAst $ uriToFilePath uri
+        >>= (\x -> Map.lookup x cache)
+      messages = concatMap diagnoseTree asts
+  sendNotification SMethod_TextDocumentPublishDiagnostics 
+      $ PublishDiagnosticsParams uri Nothing messages
+  where
+    diagnoseTree (SomeScopeWithAST _ tree) = diagnoseAST tree
+  -- sendNotification SMethod_WindowShowMessage 
+  --   $ ShowMessageParams MessageType_Info 
+  --   $ T.pack 
+  --   $ "diagnostic messages: " ++ show messages
+
+diagnoseAST :: (F.CoSinkable binder, Bifoldable sig, DiagnosableSig sig)
+  => F.AST binder sig n -> [Diagnostic]
+diagnoseAST = \case
+  F.Var _ -> []
+  F.Node n -> diagnose n ++ bifoldMap
+    -- TODO: DiagnosablePattern
+    (\(F.ScopedAST _ a) -> diagnoseAST a)
+    diagnoseAST
+    n
+
+handlers :: 
+  ( Bifunctor sig
+  , Bifoldable sig
+  , TokenizableSig sig
+  , Hoverable sig
+  , HoverablePat binder
+  , DiagnosableSig sig
+  , Ranged sig
+  , F.CoSinkable binder
+  , RangedPattern binder
+  , TokenizablePattern binder )
+  => LSConfiguration binder sig 
+  -> Handlers (LSP (SomeScopeWithAST binder sig))
+handlers (LSConfiguration fileExtension buildAsts printTerm) =
   let cacheAsts = buildCache fileExtension buildAsts 
-      defRange = definitionRange findNarrowest extractName findRange buildTele
-      -- symRange = symbolRange findNarrowest astRange
-      usagesRanges = mentionedRanges findNarrowest extractName findRange buildTele
-      -- traceVar = traces 
-      -- traceVar = traces findNarrowest extractName buildTele showSomeAST
   in mconcat
-  [ notificationHandler SMethod_Initialized $ const $ cacheAsts
-  , notificationHandler SMethod_WorkspaceDidChangeWatchedFiles $ const $ cacheAsts
+  [ notificationHandler SMethod_Initialized $ const cacheAsts
+  , notificationHandler SMethod_TextDocumentDidOpen $ \noti -> do
+    let uri = noti ^. LSP.params . LSP.textDocument . LSP.uri 
+    showDiagnostics uri
+  , notificationHandler SMethod_TextDocumentDidChange $ \noti -> do
+    let uri = noti ^. LSP.params . LSP.textDocument . LSP.uri 
+    showDiagnostics uri
+  , notificationHandler SMethod_WorkspaceDidChangeWatchedFiles $ const cacheAsts
   , requestHandler SMethod_TextDocumentDefinition $ \req responder -> do
     LangStore cache <- getCachedStore
     let parameters = req ^. LSP.params
-        bnfcPosition = toBnfcPosition $ parameters ^. LSP.position
+        pos = parameters ^. LSP.position
         fileUri = parameters ^. LSP.textDocument . LSP.uri
         maybeCurrentFile = uriToFilePath fileUri
         asts = maybe [] langAst (maybeCurrentFile >>= lookupFile cache)
-        maybeRange = firstJust 
-          $ map (defRange bnfcPosition) asts
-        -- usages = concatMap ((++ "\n\n") . traceVar StrType) asts
-        --  concatMap ((++ "\n\n") . traceVar) asts
+        maybeRange = firstJustL 
+          $ map (definitionRange pos) asts
     sendNotification SMethod_WindowShowMessage 
       $ ShowMessageParams MessageType_Info 
       $ T.pack 
-      $ "Range identified: " ++ show maybeRange
-    -- sendNotification SMethod_WindowShowMessage 
-    --   $ ShowMessageParams MessageType_Info 
-    --   $ T.pack 
-    --   $ "Usages: " ++ usages
+      $ "Current ASTS: " ++ show (map (\(SomeScopeWithAST _ ast) -> printTerm (SomeAST ast)) asts)
     let maybeLocation = fmap (Location fileUri) maybeRange
     responder 
       $ maybeToEither (responseError "Did not find the definition") 
       $ fmap (InL . Definition . InL) maybeLocation
   , requestHandler SMethod_TextDocumentRename $ \req responder -> do
     let parameters = req ^. LSP.params
-        bnfcPosition = toBnfcPosition $ parameters ^. LSP.position
+        pos = parameters ^. LSP.position
         newSymName = parameters ^. LSP.newName
         fileUri = parameters ^. LSP.textDocument . LSP.uri
         maybeCurrentFile = uriToFilePath fileUri
     vdoc <- getVersionedTextDoc $ parameters ^. LSP.textDocument
     LangStore cache <- getCachedStore
     let asts = maybe [] langAst (maybeCurrentFile >>= lookupFile cache)
-        mentioned = concatMap (usagesRanges bnfcPosition) asts
-        -- maybeDefRange = firstJust $ map (defRange bnfcPosition) asts
-        -- maybeNameRange = firstJust $ map (symRange bnfcPosition) asts
-        toTextEdit range = InL $ TextEdit range newSymName
-        -- edits = concatMap (maybeToList toTextEdit) [maybeDefRange, maybeNameRange]
+        mentioned = concatMap (mentionedRanges pos) asts
+        toTextEdit range' = InL $ TextEdit range' newSymName
         edits = map toTextEdit mentioned
         tde = TextDocumentEdit (_versionedTextDocumentIdentifier # vdoc) edits
         rsp = WorkspaceEdit Nothing (Just [InL tde]) Nothing
     responder $ Right $ InL rsp
+  , requestHandler SMethod_TextDocumentSemanticTokensFull semanticTokens
+  , requestHandler SMethod_TextDocumentHover showHover
   ]
   where
     lookupFile cache x = Map.lookup x cache
-    toBnfcPosition (Position l r) = (fromIntegral l + 1, fromIntegral r + 1)
     responseError comment = TResponseError (InL LSPErrorCodes_RequestFailed) (T.pack comment) Nothing
-    -- showSomeAST (SomeAST n) = printTerm
 
-runLanguageServer :: LSConfiguration binder sig -> IO ()
+runLanguageServer :: 
+  ( Bifunctor sig
+  , Bifoldable sig
+  , TokenizableSig sig
+  , Hoverable sig
+  , HoverablePat binder
+  , DiagnosableSig sig
+  , Ranged sig
+  , F.CoSinkable binder
+  , RangedPattern binder
+  , TokenizablePattern binder )
+  => LSConfiguration binder sig 
+  -> IO ()
 runLanguageServer config = do
   langEnv <- defaultLangEnv
   void $ runServer
@@ -338,299 +537,43 @@ runLanguageServer config = do
       , options = defaultOptions
       }
 
+class TypeDeductive sig sig' ty binder where
+  deduceType 
+    :: ty 
+    -> sig 
+      (ty, ty -> (F.ScopedAST binder sig' n, ty)) 
+      (ty -> (F.AST binder sig' n, ty)) 
+    -> sig' (F.ScopedAST binder sig' n) (F.AST binder sig' n)
 
+class Typed sig ty where
+  ty :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> ty
 
--- Typechecking
+class TypedPattern pat ty where
+  patTy :: pat n l -> ty
+  addPattern :: pat n l -> F.NameMap n ty -> F.NameMap l ty
 
---------------------------------------------------------------------------------
-
--- * Core Types
-
---------------------------------------------------------------------------------
-
--- | Typing context mapping names to types
-type Context' ty n = F.NameMap n (ty n)
-
--- | Scoped value with a binder
-data Scoped binder (t :: F.S -> Type) (n :: F.S) where
-  Scoped :: binder n l -> t l -> Scoped binder t n
-
--- | Type errors
-data TypeError ty
-  = TypeErrorUnexpectedType ty ty
-  | TypeErrorUnexpectedDependentType
-  deriving (Show)
-
--- | Bidirectional type checking result
-data CheckInfer term ty (n :: F.S) = CheckInfer
-  { check :: ty n -> Either String (),
-    infer :: Either String (ty n),
-    getTerm :: term n
-  }
-
--- | Type for scoped checking/inference
-type ScopedCheckInfer term binder ty (n :: F.S) =
-  Maybe (ty n) -> CheckInfer (Scoped binder term) (Scoped binder ty) n
-
--- | Typed name binders data structure
-data TypedNameBinders ty n l where
-  TypedNameBindersEmpty :: TypedNameBinders ty n n
-  TypedNameBindersCons ::
-    F.NameBinder n i -> ty n -> TypedNameBinders ty i l -> TypedNameBinders ty n l
-
---------------------------------------------------------------------------------
-
--- * Required Type Classes
-
---------------------------------------------------------------------------------
-
--- | Alpha equivalence class
-class AlphaEquiv t where
-  alphaEquiv :: (F.Distinct n) => F.Scope n -> t n -> t n -> Bool
-
--- | Default instance for Free Foil ASTs
-instance
-  (Bifunctor sig, Bifoldable sig, ZipMatchK sig, F.UnifiablePattern binder) =>
-  AlphaEquiv (F.AST binder sig)
+typecheck :: (Bifunctor sig, TypeDeductive sig sig' ty binder, Typed sig' ty, TypedPattern binder ty, F.Distinct n, F.CoSinkable binder) 
+  => F.NameMap n ty -> ty -> F.AST binder sig n -> F.AST binder sig' n
+typecheck nm typ = \case 
+  F.Var n -> F.Var n
+  F.Node sig -> F.Node $ deduceType typ $ bimap 
+    (\(F.ScopedAST binder a) -> case F.assertDistinct binder of
+      F.Distinct -> 
+        let f = (first (F.ScopedAST binder)) . check (addPattern binder nm) a
+        in (patTy binder, f)
+      ) 
+    (check nm)
+    sig
   where
-  alphaEquiv = alphaEquiv
-
--- | Main typing signature class
-class
-  (forall n. Show (TypeError (ty n)), AlphaEquiv ty) =>
-  TypingSig binder ty sig
-  where
-  checkSig ::
-    (F.Distinct n) =>
-    Context' ty n ->
-    sig (ScopedCheckInfer (F.AST binder sig) binder ty n) (CheckInfer (F.AST binder sig) ty n) ->
-    ty n ->
-    Either String ()
-  checkSig = defaultCheckSig
-
-  inferSig ::
-    (F.Distinct n) =>
-    Context' ty n ->
-    sig (ScopedCheckInfer (F.AST binder sig) binder ty n) (CheckInfer (F.AST binder sig) ty n) ->
-    Either String (ty n)
-
--- | Class for typed patterns
-class TypedPattern ty pat where
-  extractPatternType :: pat n l -> Maybe (ty n)
-  extractTypedBinders :: pat n l -> ty n -> TypedNameBinders ty n l
-
--- | Class for creating trivially scoped values
-class HasTrivialBinder binder where
-  triviallyScoped ::
-    (F.Distinct n, F.Sinkable ty) =>
-    F.Scope n ->
-    ty n ->
-    Scoped binder ty n
-
-instance HasTrivialBinder F.NameBinder where
-  triviallyScoped scope type_ =
-    F.withFresh scope $ \binder ->
-      Scoped binder (F.sink type_)
-
---------------------------------------------------------------------------------
-
--- * Generic Utilities
-
---------------------------------------------------------------------------------
-
-nameMapToScope :: F.NameMap n a -> F.Scope n
-nameMapToScope (F.NameMap m) = F.UnsafeScope (IntMap.keysSet m)
--- deriving instance Functor (F.NameMap n)
-
--- | Check if actual type matches expected type
-shouldBe ::
-  (AlphaEquiv ty, F.Distinct n, Show (ty n)) =>
-  (F.NameMap n (ty n), ty n) ->
-  ty n ->
-  Either String ()
-shouldBe (scope, actualType) expectedType
-  | sameType = return ()
-  | otherwise =
-      Left $
-        unlines
-          [ "expected type"
-          , "  " ++ show expectedType
-          , "but got type"
-          , "  " ++ show actualType
-          , "when typechecking expression"
-          -- ,  "  " ++ show e
-          ]
-  where
-    sameType = alphaEquiv (nameMapToScope scope) actualType expectedType
-
--- | Default implementation of checkSig
-defaultCheckSig ::
-  (F.Distinct n, TypingSig binder ty sig) =>
-  Context' ty n ->
-  sig (ScopedCheckInfer (F.AST binder sig) binder ty n) (CheckInfer (F.AST binder sig) ty n) ->
-  ty n ->
-  Either String ()
-defaultCheckSig ctx node expectedType = do
-  inferredType <- inferSig ctx node
-  unless (alphaEquiv (nameMapToScope ctx) inferredType expectedType) $
-    Left (show (TypeErrorUnexpectedType inferredType expectedType))
-
--- | Extract type from a binder
-extractTypeFromBinder ::
-  (TypedPattern ty binder, AlphaEquiv ty, F.Distinct n) =>
-  Context' ty n ->
-  binder n l ->
-  Maybe (ty n) ->
-  Either String (ty n)
-extractTypeFromBinder _scope binder Nothing =
-  maybe (Left "cannot infer without type annotation for pattern") Right $
-    extractPatternType binder
-extractTypeFromBinder scope binder (Just ty) =
-  maybe
-    (Right ty)
-    ( \binderTy ->
-        if alphaEquiv (nameMapToScope scope) binderTy ty
-          then Right ty
-          else Left "type mismatch"
-    )
-    $ extractPatternType binder
-
---------------------------------------------------------------------------------
-
--- * Main Bidirectional Type Checking API
-
---------------------------------------------------------------------------------
-
--- | Check a term against an expected type
-bidirectionalCheck ::
-  ( F.Distinct n
-  , Bitraversable sig
-  , AlphaEquiv ty
-  , TypingSig binder ty sig
-  , F.UnifiablePattern binder
-  , F.Sinkable ty
-  , TypedPattern ty binder
-  , F.SinkableK binder
-  ) =>
-  Context' ty n ->
-  F.AST binder sig n ->
-  ty n ->
-  Either String ()
-bidirectionalCheck scope t expectedType = do
-  ci <- bidirectionalCheckInfer scope t
-  check ci expectedType
-
--- | Infer the type of a term
-bidirectionalInfer ::
-  ( F.Distinct n
-  , Bitraversable sig
-  , TypingSig binder ty sig
-  , F.UnifiablePattern binder
-  , F.Sinkable ty
-  , TypedPattern ty binder
-  , F.SinkableK binder
-  ) =>
-  Context' ty n ->
-  F.AST binder sig n ->
-  Either String (ty n)
-bidirectionalInfer scope t = do
-  ci <- bidirectionalCheckInfer scope t
-  infer ci
-
--- | Combined check/infer for a term
-bidirectionalCheckInfer ::
-  forall ty binder sig n.
-  ( F.Distinct n
-  , Bitraversable sig
-  , TypingSig binder ty sig
-  , F.UnifiablePattern binder
-  , F.Sinkable ty
-  , TypedPattern ty binder
-  , F.SinkableK binder
-  ) =>
-  Context' ty n ->
-  F.AST binder sig n ->
-  Either String (CheckInfer (F.AST binder sig) ty n)
-
--- Variable case
-bidirectionalCheckInfer scope t@(F.Var n) = do
-  let inferredType = F.lookupName n scope
-  return
-    CheckInfer
-      { infer = return inferredType,
-        check = \expectedType -> do
-          unless (alphaEquiv (nameMapToScope scope) inferredType expectedType) $
-            Left (show (TypeErrorUnexpectedType inferredType expectedType)),
-        getTerm = t
-      }
-
--- Node case
-bidirectionalCheckInfer scope (F.Node node) = do
-  node' <-
-    bitraverse
-      (bidirectionalCheckInferScoped scope)
-      (bidirectionalCheckInfer scope)
-      node
-  return
-    CheckInfer
-      { infer = inferSig scope node',
-        check = checkSig scope node',
-        getTerm = F.Node node
-      }
-
-extractExactlyOneBinder :: TypedPattern ty pat => pat n l -> ty n -> F.NameBinder n l
-extractExactlyOneBinder binder ty = 
-  case extractTypedBinders binder ty of
-    TypedNameBindersCons extractedBinder _ty TypedNameBindersEmpty -> extractedBinder
-    _ -> error "Expected exactly one binder"
-
--- | Bidirectional check/infer for scoped terms
-bidirectionalCheckInferScoped ::
-  ( F.Distinct n
-  , Bitraversable sig
-  , TypingSig binder ty sig
-  , F.UnifiablePattern binder
-  , F.Sinkable ty
-  , TypedPattern ty binder
-  , F.SinkableK binder
-  ) =>
-  Context' ty n ->
-  F.ScopedAST binder sig n ->
-  Either String (ScopedCheckInfer (F.AST binder sig) binder ty n)
-bidirectionalCheckInferScoped scope (F.ScopedAST binder body) =
-  case (F.assertExt binder, F.assertDistinct binder) of
-    (F.Ext, F.Distinct) -> return $ \mbinderType ->
-      CheckInfer
-        { infer = do
-            ty <- extractTypeFromBinder scope binder mbinderType
-            let scope' = F.sink <$> F.addNameBinder (extractExactlyOneBinder binder ty) ty scope
-            ci <- bidirectionalCheckInfer scope' body
-            Scoped binder <$> infer ci,
-          check = \(Scoped binder' expectedType) -> do
-            -- TODO: check binder' against binder
-            ty <- extractTypeFromBinder scope binder mbinderType
-            case F.unifyPatterns binder binder' of
-              F.SameNameBinders _binders -> do
-                let scope' =
-                      F.sink <$> F.addNameBinder (extractExactlyOneBinder binder ty) ty scope
-                ci <- bidirectionalCheckInfer scope' body
-                check ci expectedType
-              F.RenameLeftNameBinder _binders renameL ->
-                case (F.assertExt binder', F.assertDistinct binder') of
-                  (F.Ext, F.Distinct) -> do
-                    let scope' =
-                          F.sink <$> F.addNameBinder (extractExactlyOneBinder binder' ty) ty scope
-                        body' =
-                          F.liftRM
-                            (nameMapToScope scope')
-                            (F.fromNameBinderRenaming renameL)
-                            body
-                    ci <- bidirectionalCheckInfer scope' body'
-                    check ci expectedType
-
-              -- FIXME: RenameRightNameBinder, RenameBothNameBinders
-              _ -> Left "non-unifiable patterns",
-          getTerm = Scoped binder body
-        }
-
-
+    astTy :: (Typed sig ty) => F.NameMap n ty -> F.AST binder sig n -> ty
+    astTy nm' = \case
+      F.Var n -> F.lookupName n nm'
+      F.Node sig -> ty sig
+    check :: (Bifunctor sig, TypeDeductive sig sig' ty binder, Typed sig' ty, TypedPattern binder ty, F.Distinct n, F.CoSinkable binder) 
+      => F.NameMap n ty 
+      -> F.AST binder sig n
+      -> ty 
+      -> (F.AST binder sig' n, ty)
+    check nm' a t = 
+      let a' = typecheck nm' t a
+      in (a', astTy nm' a')

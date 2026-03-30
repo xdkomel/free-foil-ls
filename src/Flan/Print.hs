@@ -145,7 +145,11 @@ instance Print (Flan.Abs.Program' a) where
 
 instance Print (Flan.Abs.Binding' a) where
   prt i = \case
-    Flan.Abs.LetBinding _ typedpattern term -> prPrec i 0 (concatD [doc (showString "|"), prt 0 typedpattern, doc (showString "="), prt 0 term])
+    Flan.Abs.LetBinding _ typedpattern leteq term -> prPrec i 0 (concatD [doc (showString "|"), prt 0 typedpattern, prt 0 leteq, prt 0 term])
+
+instance Print (Flan.Abs.LetEq' a) where
+  prt i = \case
+    Flan.Abs.ALetEq _ -> prPrec i 0 (concatD [doc (showString "=")])
 
 instance Print [Flan.Abs.Binding' a] where
   prt _ [] = concatD []
@@ -153,30 +157,79 @@ instance Print [Flan.Abs.Binding' a] where
 
 instance Print (Flan.Abs.Term' a) where
   prt i = \case
-    Flan.Abs.Let _ bindings term -> prPrec i 0 (concatD [prt 0 bindings, doc (showString "\\"), prt 0 term])
-    Flan.Abs.Lam _ typedpattern term -> prPrec i 0 (concatD [doc (showString "/"), prt 0 typedpattern, doc (showString "=>"), prt 0 term])
+    Flan.Abs.Let _ bindings letin term -> prPrec i 0 (concatD [prt 0 bindings, prt 0 letin, prt 0 term])
+    Flan.Abs.Lam _ typedpattern lamarrow term -> prPrec i 0 (concatD [doc (showString "/"), prt 0 typedpattern, prt 0 lamarrow, prt 0 term])
     Flan.Abs.App _ term1 term2 -> prPrec i 1 (concatD [prt 1 term1, prt 2 term2])
-    Flan.Abs.If _ term1 term2 term3 -> prPrec i 0 (concatD [doc (showString "if"), prt 0 term1, doc (showString "then"), prt 0 term2, doc (showString "else"), prt 0 term3])
-    Flan.Abs.Pair _ term1 term2 -> prPrec i 0 (concatD [doc (showString "["), prt 0 term1, doc (showString ","), prt 0 term2, doc (showString "]")])
+    Flan.Abs.If _ term1 thenkw term2 elsekw term3 -> prPrec i 0 (concatD [doc (showString "if"), prt 0 term1, prt 0 thenkw, prt 0 term2, prt 0 elsekw, prt 0 term3])
+    Flan.Abs.Pair _ term1 paircomma term2 closingbracket -> prPrec i 0 (concatD [doc (showString "["), prt 0 term1, prt 0 paircomma, prt 0 term2, prt 0 closingbracket])
     Flan.Abs.Var _ varident -> prPrec i 3 (concatD [prt 0 varident])
     Flan.Abs.ConstTrue _ -> prPrec i 3 (concatD [doc (showString "True")])
     Flan.Abs.ConstFalse _ -> prPrec i 3 (concatD [doc (showString "False")])
     Flan.Abs.ConstInt _ n -> prPrec i 3 (concatD [prt 0 n])
     Flan.Abs.ConstStr _ str -> prPrec i 3 (concatD [printString str])
 
+instance Print (Flan.Abs.LetIn' a) where
+  prt i = \case
+    Flan.Abs.ALetIn _ -> prPrec i 0 (concatD [doc (showString "\\")])
+
+instance Print (Flan.Abs.LamArrow' a) where
+  prt i = \case
+    Flan.Abs.ALamArrow _ -> prPrec i 0 (concatD [doc (showString "=>")])
+
+instance Print (Flan.Abs.ThenKW' a) where
+  prt i = \case
+    Flan.Abs.IfThenKW _ -> prPrec i 0 (concatD [doc (showString "then")])
+
+instance Print (Flan.Abs.ElseKW' a) where
+  prt i = \case
+    Flan.Abs.IfElseKW _ -> prPrec i 0 (concatD [doc (showString "else")])
+
+instance Print (Flan.Abs.PairComma' a) where
+  prt i = \case
+    Flan.Abs.APairComma _ -> prPrec i 0 (concatD [doc (showString ",")])
+
+instance Print (Flan.Abs.ClosingBracket' a) where
+  prt i = \case
+    Flan.Abs.PairClosingBracket _ -> prPrec i 0 (concatD [doc (showString "]")])
+
 instance Print (Flan.Abs.TypedPattern' a) where
   prt i = \case
-    Flan.Abs.ATypedPattern _ pattern_ flantype -> prPrec i 0 (concatD [prt 0 pattern_, doc (showString ":"), prt 0 flantype])
+    Flan.Abs.ATypedPattern _ pattern_ typedpatterncolon flantype -> prPrec i 0 (concatD [prt 0 pattern_, prt 0 typedpatterncolon, prt 0 flantype])
     Flan.Abs.UntypedPattern _ pattern_ -> prPrec i 0 (concatD [prt 0 pattern_])
+
+instance Print (Flan.Abs.TypedPatternColon' a) where
+  prt i = \case
+    Flan.Abs.ATypedPatternColon _ -> prPrec i 0 (concatD [doc (showString ":")])
 
 instance Print (Flan.Abs.Pattern' a) where
   prt i = \case
     Flan.Abs.PatternVar _ varident -> prPrec i 0 (concatD [prt 0 varident])
-    Flan.Abs.PatternPair _ pattern_1 pattern_2 -> prPrec i 0 (concatD [doc (showString "["), prt 0 pattern_1, doc (showString ","), prt 0 pattern_2, doc (showString "]")])
+    Flan.Abs.PatternPair _ pattern_1 patternpaircomma pattern_2 patternpairclosingbracket -> prPrec i 0 (concatD [doc (showString "["), prt 0 pattern_1, prt 0 patternpaircomma, prt 0 pattern_2, prt 0 patternpairclosingbracket])
     Flan.Abs.PatternWildcard _ -> prPrec i 0 (concatD [doc (showString "_")])
+
+instance Print (Flan.Abs.PatternPairComma' a) where
+  prt i = \case
+    Flan.Abs.APatternPairComma _ -> prPrec i 0 (concatD [doc (showString ",")])
+
+instance Print (Flan.Abs.PatternPairClosingBracket' a) where
+  prt i = \case
+    Flan.Abs.APatternPairClosingBracket _ -> prPrec i 0 (concatD [doc (showString "]")])
 
 instance Print (Flan.Abs.FlanType' a) where
   prt i = \case
+    Flan.Abs.AnyType _ -> prPrec i 2 (concatD [doc (showString "_")])
     Flan.Abs.ValType _ varident -> prPrec i 2 (concatD [prt 0 varident])
-    Flan.Abs.FunType _ flantype1 flantype2 -> prPrec i 1 (concatD [prt 1 flantype1, doc (showString "->"), prt 0 flantype2])
-    Flan.Abs.PairType _ flantype1 flantype2 -> prPrec i 1 (concatD [doc (showString "["), prt 0 flantype1, doc (showString ","), prt 0 flantype2, doc (showString "]")])
+    Flan.Abs.FunType _ flantype1 funtypearrow flantype2 -> prPrec i 1 (concatD [prt 1 flantype1, prt 0 funtypearrow, prt 0 flantype2])
+    Flan.Abs.PairType _ flantype1 pairtypecomma flantype2 pairtypeclosingbracket -> prPrec i 1 (concatD [doc (showString "["), prt 0 flantype1, prt 0 pairtypecomma, prt 0 flantype2, prt 0 pairtypeclosingbracket])
+
+instance Print (Flan.Abs.FunTypeArrow' a) where
+  prt i = \case
+    Flan.Abs.AFunTypeArrow _ -> prPrec i 0 (concatD [doc (showString "->")])
+
+instance Print (Flan.Abs.PairTypeComma' a) where
+  prt i = \case
+    Flan.Abs.APairTypeComma _ -> prPrec i 0 (concatD [doc (showString ",")])
+
+instance Print (Flan.Abs.PairTypeClosingBracket' a) where
+  prt i = \case
+    Flan.Abs.APairTypeClosingBracket _ -> prPrec i 0 (concatD [doc (showString "]")])

@@ -37,6 +37,7 @@ library
       AgnosticLanguageServer.AgnosticLanguageServerFlan
       Common.LambdaPi
       Common.Flan
+      Common.FlanConversion
       Common.LanguageServerCache
   other-modules:
       Hsls.AbsHsls
@@ -70,6 +71,7 @@ library
     , lsp-test
     , lsp-types
     , mtl >=2.2.2
+    , sort
     , stm >=2.5.0.0
     , template-haskell
     , text

@@ -25,34 +25,87 @@ transProgram x = case x of
 
 transBinding :: Show a => Flan.Abs.Binding' a -> Result
 transBinding x = case x of
-  Flan.Abs.LetBinding _ typedpattern term -> failure x
+  Flan.Abs.LetBinding _ typedpattern leteq term -> failure x
+
+transLetEq :: Show a => Flan.Abs.LetEq' a -> Result
+transLetEq x = case x of
+  Flan.Abs.ALetEq _ -> failure x
 
 transTerm :: Show a => Flan.Abs.Term' a -> Result
 transTerm x = case x of
-  Flan.Abs.Let _ bindings term -> failure x
-  Flan.Abs.Lam _ typedpattern term -> failure x
+  Flan.Abs.Let _ bindings letin term -> failure x
+  Flan.Abs.Lam _ typedpattern lamarrow term -> failure x
   Flan.Abs.App _ term1 term2 -> failure x
-  Flan.Abs.If _ term1 term2 term3 -> failure x
-  Flan.Abs.Pair _ term1 term2 -> failure x
+  Flan.Abs.If _ term1 thenkw term2 elsekw term3 -> failure x
+  Flan.Abs.Pair _ term1 paircomma term2 closingbracket -> failure x
   Flan.Abs.Var _ varident -> failure x
   Flan.Abs.ConstTrue _ -> failure x
   Flan.Abs.ConstFalse _ -> failure x
   Flan.Abs.ConstInt _ integer -> failure x
   Flan.Abs.ConstStr _ string -> failure x
 
+transLetIn :: Show a => Flan.Abs.LetIn' a -> Result
+transLetIn x = case x of
+  Flan.Abs.ALetIn _ -> failure x
+
+transLamArrow :: Show a => Flan.Abs.LamArrow' a -> Result
+transLamArrow x = case x of
+  Flan.Abs.ALamArrow _ -> failure x
+
+transThenKW :: Show a => Flan.Abs.ThenKW' a -> Result
+transThenKW x = case x of
+  Flan.Abs.IfThenKW _ -> failure x
+
+transElseKW :: Show a => Flan.Abs.ElseKW' a -> Result
+transElseKW x = case x of
+  Flan.Abs.IfElseKW _ -> failure x
+
+transPairComma :: Show a => Flan.Abs.PairComma' a -> Result
+transPairComma x = case x of
+  Flan.Abs.APairComma _ -> failure x
+
+transClosingBracket :: Show a => Flan.Abs.ClosingBracket' a -> Result
+transClosingBracket x = case x of
+  Flan.Abs.PairClosingBracket _ -> failure x
+
 transTypedPattern :: Show a => Flan.Abs.TypedPattern' a -> Result
 transTypedPattern x = case x of
-  Flan.Abs.ATypedPattern _ pattern_ flantype -> failure x
+  Flan.Abs.ATypedPattern _ pattern_ typedpatterncolon flantype -> failure x
   Flan.Abs.UntypedPattern _ pattern_ -> failure x
+
+transTypedPatternColon :: Show a => Flan.Abs.TypedPatternColon' a -> Result
+transTypedPatternColon x = case x of
+  Flan.Abs.ATypedPatternColon _ -> failure x
 
 transPattern :: Show a => Flan.Abs.Pattern' a -> Result
 transPattern x = case x of
   Flan.Abs.PatternVar _ varident -> failure x
-  Flan.Abs.PatternPair _ pattern_1 pattern_2 -> failure x
+  Flan.Abs.PatternPair _ pattern_1 patternpaircomma pattern_2 patternpairclosingbracket -> failure x
   Flan.Abs.PatternWildcard _ -> failure x
+
+transPatternPairComma :: Show a => Flan.Abs.PatternPairComma' a -> Result
+transPatternPairComma x = case x of
+  Flan.Abs.APatternPairComma _ -> failure x
+
+transPatternPairClosingBracket :: Show a => Flan.Abs.PatternPairClosingBracket' a -> Result
+transPatternPairClosingBracket x = case x of
+  Flan.Abs.APatternPairClosingBracket _ -> failure x
 
 transFlanType :: Show a => Flan.Abs.FlanType' a -> Result
 transFlanType x = case x of
+  Flan.Abs.AnyType _ -> failure x
   Flan.Abs.ValType _ varident -> failure x
-  Flan.Abs.FunType _ flantype1 flantype2 -> failure x
-  Flan.Abs.PairType _ flantype1 flantype2 -> failure x
+  Flan.Abs.FunType _ flantype1 funtypearrow flantype2 -> failure x
+  Flan.Abs.PairType _ flantype1 pairtypecomma flantype2 pairtypeclosingbracket -> failure x
+
+transFunTypeArrow :: Show a => Flan.Abs.FunTypeArrow' a -> Result
+transFunTypeArrow x = case x of
+  Flan.Abs.AFunTypeArrow _ -> failure x
+
+transPairTypeComma :: Show a => Flan.Abs.PairTypeComma' a -> Result
+transPairTypeComma x = case x of
+  Flan.Abs.APairTypeComma _ -> failure x
+
+transPairTypeClosingBracket :: Show a => Flan.Abs.PairTypeClosingBracket' a -> Result
+transPairTypeClosingBracket x = case x of
+  Flan.Abs.APairTypeClosingBracket _ -> failure x

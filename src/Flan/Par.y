@@ -10,15 +10,28 @@ module Flan.Par
   , myLexer
   , pProgram
   , pBinding
+  , pLetEq
   , pListBinding
   , pTerm
+  , pLetIn
+  , pLamArrow
   , pTerm1
+  , pThenKW
+  , pElseKW
+  , pPairComma
+  , pClosingBracket
   , pTerm3
   , pTerm2
   , pTypedPattern
+  , pTypedPatternColon
   , pPattern
+  , pPatternPairComma
+  , pPatternPairClosingBracket
   , pFlanType2
   , pFlanType1
+  , pFunTypeArrow
+  , pPairTypeComma
+  , pPairTypeClosingBracket
   , pFlanType
   ) where
 
@@ -31,15 +44,28 @@ import Flan.Lex
 
 %name pProgram_internal Program
 %name pBinding_internal Binding
+%name pLetEq_internal LetEq
 %name pListBinding_internal ListBinding
 %name pTerm_internal Term
+%name pLetIn_internal LetIn
+%name pLamArrow_internal LamArrow
 %name pTerm1_internal Term1
+%name pThenKW_internal ThenKW
+%name pElseKW_internal ElseKW
+%name pPairComma_internal PairComma
+%name pClosingBracket_internal ClosingBracket
 %name pTerm3_internal Term3
 %name pTerm2_internal Term2
 %name pTypedPattern_internal TypedPattern
+%name pTypedPatternColon_internal TypedPatternColon
 %name pPattern_internal Pattern
+%name pPatternPairComma_internal PatternPairComma
+%name pPatternPairClosingBracket_internal PatternPairClosingBracket
 %name pFlanType2_internal FlanType2
 %name pFlanType1_internal FlanType1
+%name pFunTypeArrow_internal FunTypeArrow
+%name pPairTypeComma_internal PairTypeComma
+%name pPairTypeClosingBracket_internal PairTypeClosingBracket
 %name pFlanType_internal FlanType
 -- no lexer declaration
 %monad { Err } { (>>=) } { return }
@@ -83,7 +109,11 @@ Program : Term { (fst $1, Flan.Abs.AProgram (fst $1) (snd $1)) }
 
 Binding :: { (Flan.Abs.BNFC'Position, Flan.Abs.Binding) }
 Binding
-  : '|' TypedPattern '=' Term { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.LetBinding (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
+  : '|' TypedPattern LetEq Term { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.LetBinding (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $4)) }
+
+LetEq :: { (Flan.Abs.BNFC'Position, Flan.Abs.LetEq) }
+LetEq
+  : '=' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.ALetEq (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
 
 ListBinding :: { (Flan.Abs.BNFC'Position, [Flan.Abs.Binding]) }
 ListBinding
@@ -92,16 +122,40 @@ ListBinding
 
 Term :: { (Flan.Abs.BNFC'Position, Flan.Abs.Term) }
 Term
-  : ListBinding '\\' Term { (fst $1, Flan.Abs.Let (fst $1) (snd $1) (snd $3)) }
-  | '/' TypedPattern '=>' Term { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.Lam (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
-  | 'if' Term 'then' Term 'else' Term { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.If (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4) (snd $6)) }
-  | '[' Term ',' Term ']' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.Pair (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
+  : ListBinding LetIn Term { (fst $1, Flan.Abs.Let (fst $1) (snd $1) (snd $2) (snd $3)) }
+  | '/' TypedPattern LamArrow Term { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.Lam (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $4)) }
+  | 'if' Term ThenKW Term ElseKW Term { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.If (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $4) (snd $5) (snd $6)) }
+  | '[' Term PairComma Term ClosingBracket { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.Pair (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $4) (snd $5)) }
   | Term1 { (fst $1, (snd $1)) }
+
+LetIn :: { (Flan.Abs.BNFC'Position, Flan.Abs.LetIn) }
+LetIn
+  : '\\' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.ALetIn (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+
+LamArrow :: { (Flan.Abs.BNFC'Position, Flan.Abs.LamArrow) }
+LamArrow
+  : '=>' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.ALamArrow (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
 
 Term1 :: { (Flan.Abs.BNFC'Position, Flan.Abs.Term) }
 Term1
   : Term1 Term2 { (fst $1, Flan.Abs.App (fst $1) (snd $1) (snd $2)) }
   | Term2 { (fst $1, (snd $1)) }
+
+ThenKW :: { (Flan.Abs.BNFC'Position, Flan.Abs.ThenKW) }
+ThenKW
+  : 'then' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.IfThenKW (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+
+ElseKW :: { (Flan.Abs.BNFC'Position, Flan.Abs.ElseKW) }
+ElseKW
+  : 'else' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.IfElseKW (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+
+PairComma :: { (Flan.Abs.BNFC'Position, Flan.Abs.PairComma) }
+PairComma
+  : ',' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.APairComma (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+
+ClosingBracket :: { (Flan.Abs.BNFC'Position, Flan.Abs.ClosingBracket) }
+ClosingBracket
+  : ']' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.PairClosingBracket (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
 
 Term3 :: { (Flan.Abs.BNFC'Position, Flan.Abs.Term) }
 Term3
@@ -117,25 +171,50 @@ Term2 : Term3 { (fst $1, (snd $1)) }
 
 TypedPattern :: { (Flan.Abs.BNFC'Position, Flan.Abs.TypedPattern) }
 TypedPattern
-  : Pattern ':' FlanType { (fst $1, Flan.Abs.ATypedPattern (fst $1) (snd $1) (snd $3)) }
+  : Pattern TypedPatternColon FlanType { (fst $1, Flan.Abs.ATypedPattern (fst $1) (snd $1) (snd $2) (snd $3)) }
   | Pattern { (fst $1, Flan.Abs.UntypedPattern (fst $1) (snd $1)) }
+
+TypedPatternColon :: { (Flan.Abs.BNFC'Position, Flan.Abs.TypedPatternColon) }
+TypedPatternColon
+  : ':' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.ATypedPatternColon (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
 
 Pattern :: { (Flan.Abs.BNFC'Position, Flan.Abs.Pattern) }
 Pattern
   : VarIdent { (fst $1, Flan.Abs.PatternVar (fst $1) (snd $1)) }
-  | '[' Pattern ',' Pattern ']' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.PatternPair (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
+  | '[' Pattern PatternPairComma Pattern PatternPairClosingBracket { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.PatternPair (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $4) (snd $5)) }
   | '_' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.PatternWildcard (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+
+PatternPairComma :: { (Flan.Abs.BNFC'Position, Flan.Abs.PatternPairComma) }
+PatternPairComma
+  : ',' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.APatternPairComma (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+
+PatternPairClosingBracket :: { (Flan.Abs.BNFC'Position, Flan.Abs.PatternPairClosingBracket) }
+PatternPairClosingBracket
+  : ']' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.APatternPairClosingBracket (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
 
 FlanType2 :: { (Flan.Abs.BNFC'Position, Flan.Abs.FlanType) }
 FlanType2
-  : VarIdent { (fst $1, Flan.Abs.ValType (fst $1) (snd $1)) }
+  : '_' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.AnyType (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+  | VarIdent { (fst $1, Flan.Abs.ValType (fst $1) (snd $1)) }
   | '(' FlanType ')' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), (snd $2)) }
 
 FlanType1 :: { (Flan.Abs.BNFC'Position, Flan.Abs.FlanType) }
 FlanType1
-  : FlanType1 '->' FlanType { (fst $1, Flan.Abs.FunType (fst $1) (snd $1) (snd $3)) }
-  | '[' FlanType ',' FlanType ']' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.PairType (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
+  : FlanType1 FunTypeArrow FlanType { (fst $1, Flan.Abs.FunType (fst $1) (snd $1) (snd $2) (snd $3)) }
+  | '[' FlanType PairTypeComma FlanType PairTypeClosingBracket { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.PairType (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $4) (snd $5)) }
   | FlanType2 { (fst $1, (snd $1)) }
+
+FunTypeArrow :: { (Flan.Abs.BNFC'Position, Flan.Abs.FunTypeArrow) }
+FunTypeArrow
+  : '->' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.AFunTypeArrow (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+
+PairTypeComma :: { (Flan.Abs.BNFC'Position, Flan.Abs.PairTypeComma) }
+PairTypeComma
+  : ',' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.APairTypeComma (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
+
+PairTypeClosingBracket :: { (Flan.Abs.BNFC'Position, Flan.Abs.PairTypeClosingBracket) }
+PairTypeClosingBracket
+  : ']' { (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1), Flan.Abs.APairTypeClosingBracket (uncurry Flan.Abs.BNFC'Position (tokenLineCol $1))) }
 
 FlanType :: { (Flan.Abs.BNFC'Position, Flan.Abs.FlanType) }
 FlanType : FlanType1 { (fst $1, (snd $1)) }
@@ -163,14 +242,35 @@ pProgram = fmap snd . pProgram_internal
 pBinding :: [Token] -> Err Flan.Abs.Binding
 pBinding = fmap snd . pBinding_internal
 
+pLetEq :: [Token] -> Err Flan.Abs.LetEq
+pLetEq = fmap snd . pLetEq_internal
+
 pListBinding :: [Token] -> Err [Flan.Abs.Binding]
 pListBinding = fmap snd . pListBinding_internal
 
 pTerm :: [Token] -> Err Flan.Abs.Term
 pTerm = fmap snd . pTerm_internal
 
+pLetIn :: [Token] -> Err Flan.Abs.LetIn
+pLetIn = fmap snd . pLetIn_internal
+
+pLamArrow :: [Token] -> Err Flan.Abs.LamArrow
+pLamArrow = fmap snd . pLamArrow_internal
+
 pTerm1 :: [Token] -> Err Flan.Abs.Term
 pTerm1 = fmap snd . pTerm1_internal
+
+pThenKW :: [Token] -> Err Flan.Abs.ThenKW
+pThenKW = fmap snd . pThenKW_internal
+
+pElseKW :: [Token] -> Err Flan.Abs.ElseKW
+pElseKW = fmap snd . pElseKW_internal
+
+pPairComma :: [Token] -> Err Flan.Abs.PairComma
+pPairComma = fmap snd . pPairComma_internal
+
+pClosingBracket :: [Token] -> Err Flan.Abs.ClosingBracket
+pClosingBracket = fmap snd . pClosingBracket_internal
 
 pTerm3 :: [Token] -> Err Flan.Abs.Term
 pTerm3 = fmap snd . pTerm3_internal
@@ -181,14 +281,32 @@ pTerm2 = fmap snd . pTerm2_internal
 pTypedPattern :: [Token] -> Err Flan.Abs.TypedPattern
 pTypedPattern = fmap snd . pTypedPattern_internal
 
+pTypedPatternColon :: [Token] -> Err Flan.Abs.TypedPatternColon
+pTypedPatternColon = fmap snd . pTypedPatternColon_internal
+
 pPattern :: [Token] -> Err Flan.Abs.Pattern
 pPattern = fmap snd . pPattern_internal
+
+pPatternPairComma :: [Token] -> Err Flan.Abs.PatternPairComma
+pPatternPairComma = fmap snd . pPatternPairComma_internal
+
+pPatternPairClosingBracket :: [Token] -> Err Flan.Abs.PatternPairClosingBracket
+pPatternPairClosingBracket = fmap snd . pPatternPairClosingBracket_internal
 
 pFlanType2 :: [Token] -> Err Flan.Abs.FlanType
 pFlanType2 = fmap snd . pFlanType2_internal
 
 pFlanType1 :: [Token] -> Err Flan.Abs.FlanType
 pFlanType1 = fmap snd . pFlanType1_internal
+
+pFunTypeArrow :: [Token] -> Err Flan.Abs.FunTypeArrow
+pFunTypeArrow = fmap snd . pFunTypeArrow_internal
+
+pPairTypeComma :: [Token] -> Err Flan.Abs.PairTypeComma
+pPairTypeComma = fmap snd . pPairTypeComma_internal
+
+pPairTypeClosingBracket :: [Token] -> Err Flan.Abs.PairTypeClosingBracket
+pPairTypeClosingBracket = fmap snd . pPairTypeClosingBracket_internal
 
 pFlanType :: [Token] -> Err Flan.Abs.FlanType
 pFlanType = fmap snd . pFlanType_internal

@@ -87,12 +87,12 @@ buildTelescopes :: Distinct n => LambdaPi a n -> [LS.TermTelescope NameBinder (L
 buildTelescopes t@AVar{} = [LS.LeafTerm t]
 buildTelescopes (App _ fun arg) = concatMap buildTelescopes [fun, arg]
 buildTelescopes t@(Lam _ binder _ body) =
-  case assertDistinct binder of
-    Distinct -> (map (LS.NodeTerm t binder) $ buildTelescopes body)
+  case (assertDistinct binder, assertExt binder) of
+    (Distinct, Ext) -> (map (LS.NodeTerm t binder) $ buildTelescopes body)
       ++ [LS.LeafTerm t] 
 buildTelescopes t@(Pi _ binder _ fun body) = 
-  case assertDistinct binder of
-    Distinct -> (map (LS.NodeTerm t binder) $ buildTelescopes body)
+  case (assertDistinct binder, assertExt binder) of
+    (Distinct, Ext) -> (map (LS.NodeTerm t binder) $ buildTelescopes body)
       ++ [LS.LeafTerm t] 
       ++ buildTelescopes fun
 buildTelescopes (Pair _ l r) = concatMap buildTelescopes [l, r]
