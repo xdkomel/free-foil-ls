@@ -1,0 +1,5 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+	"flan.trace.server": "verbose",
+  	"flan.trace.server.format": "json"
+}

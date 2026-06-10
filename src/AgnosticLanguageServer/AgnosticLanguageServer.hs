@@ -17,37 +17,41 @@
 {-# LANGUAGE FlexibleContexts                 #-}
 {-# LANGUAGE StandaloneDeriving                 #-}
 {-# LANGUAGE ImpredicativeTypes                 #-}
+{-# LANGUAGE DisambiguateRecordFields           #-}
 
 module AgnosticLanguageServer.AgnosticLanguageServer where
 
 import Common.LanguageServerCache
 import qualified Control.Monad.Foil.Internal as F
 import qualified Control.Monad.Free.Foil as F
-import Control.Arrow 
+import Control.Arrow
+import Control.Concurrent (forkIO, killThread, threadDelay)
+import Control.Concurrent.STM (atomically, modifyTVar', readTVarIO)
 import qualified Data.Map as Map
 import qualified Data.Text as T
-import Language.LSP.Protocol.Types 
-import Language.LSP.Protocol.Message 
-import Language.LSP.Server 
+import Data.IORef (readIORef, writeIORef)
+import Language.LSP.Protocol.Types
+import Language.LSP.Protocol.Message
+import Language.LSP.Server
 import qualified Language.LSP.Protocol.Lens as LSP
 import Control.Monad.Reader
 import Data.Functor ( void )
 import System.FilePath.Glob ( compile, globDir )
 import Control.Lens ( ( ^. ), ( # ) )
-import Data.Maybe (catMaybes)
+import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Bifoldable (Bifoldable, bifoldMap, bifoldr)
 import Data.Bifunctor (Bifunctor, bimap)
+
+-- Types
 
 data SomeName binder sig where
   SomeName :: F.Name n -> SomeName binder sig
 
 data SomeScopeWithAST binder sig where
-  SomeScopeWithAST :: (F.Distinct n) 
-    => F.Scope n 
-    -> F.AST binder sig n 
+  SomeScopeWithAST :: (F.Distinct n)
+    => F.Scope n
+    -> F.AST binder sig n
     -> SomeScopeWithAST binder sig
-
-type FunBuildASTs b s = String -> [SomeScopeWithAST b s]
 
 data SomeAST binder sig where
   SomeAST :: (F.Distinct n)
@@ -59,10 +63,67 @@ data SomePattern binder sig where
 
 data LSConfiguration binder sig = LSConfiguration
   { fileExtension :: String
-  , buildAsts :: FunBuildASTs binder sig
-  -- For logging
-  , printTerm :: SomeAST binder sig -> String
+  , buildAsts :: String -> [SomeScopeWithAST binder sig]
   }
+
+-- Classes
+
+class RangedSig sig where
+  range :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> Maybe Range
+  range = const Nothing
+
+class FoldablePat pat where
+  foldrPat
+    :: (SomePattern pat sig -> r -> r)
+    -> r
+    -> pat n l
+    -> r
+  foldrPat _ r _ = r
+  rangePat :: pat n l -> Maybe Range
+  rangePat = const Nothing
+  binderOf :: pat n l -> Maybe (F.NameBinder n l)
+  binderOf = const Nothing
+
+class HoverableSig sig where
+  hoverData :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> [String]
+  hoverData = const []
+
+class HoverablePat pat where
+  hoverDataPat :: pat n l -> [String]
+  hoverDataPat = const []
+
+class TokenizableSig sig where
+  tokenize :: sig ScopedASTTokens ASTTokens -> [SemanticTokenAbsolute]
+  tokenize = const []
+
+class TokenizablePat pat where
+  tokenizePat :: pat n l -> [SemanticTokenAbsolute]
+  tokenizePat = const []
+
+class TypeDeductiveSig sig sig' ty binder where
+  deduceType
+    :: ty
+    -> sig
+      (ty, ty -> (F.ScopedAST binder sig' n, ty))
+      (ty -> (F.AST binder sig' n, ty))
+    -> sig' (F.ScopedAST binder sig' n) (F.AST binder sig' n)
+
+class TypedSig sig ty where
+  ty :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> ty
+
+class TypedPat pat ty where
+  patTy :: pat n l -> ty
+  addPattern :: pat n l -> F.NameMap n ty -> F.NameMap l ty
+
+class DiagnosableSig sig where
+  diagnose :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> [Diagnostic]
+  diagnose = const []
+
+class DiagnosablePat pat where
+  diagnosePat :: pat n l -> [Diagnostic]
+  diagnosePat = const []
+
+-- Functions
 
 maybeToEither :: a -> Maybe b -> Either a b
 maybeToEither l = maybe (Left l) Right
@@ -75,24 +136,27 @@ firstJustL [] = Nothing
 lastJustR :: Maybe a -> Maybe a -> Maybe a
 lastJustR = maybe id (const . Just)
 
-buildCache :: String -> FunBuildASTs binder sig -> LSP (SomeScopeWithAST binder sig) ()
+buildCache
+  :: String
+  -> (String -> [SomeScopeWithAST binder sig])
+  -> LSP (SomeScopeWithAST binder sig) ()
 buildCache extension toAsts = do
   root <- getRootPath
   case root of
     Nothing ->
-      sendNotification SMethod_WindowShowMessage 
-        $ ShowMessageParams MessageType_Warning 
+      sendNotification SMethod_WindowShowMessage
+        $ ShowMessageParams MessageType_Warning
         $ T.pack "Cannot find the workspace root"
     Just rootPath -> do
       rawPaths <- liftIO $ globDir [compile ("*." ++ extension)] rootPath
       let paths = concat rawPaths
       asts <- liftIO $ mapM filePathToAst paths
       let cache = Map.fromList $ map (second astToCache) asts
-      sendNotification SMethod_WindowShowMessage 
-        $ ShowMessageParams MessageType_Info 
-        $ T.pack 
-        $ "Language server for '." 
-          ++ extension 
+      sendNotification SMethod_WindowShowMessage
+        $ ShowMessageParams MessageType_Info
+        $ T.pack
+        $ "Language server for '."
+          ++ extension
           ++ "' is initialized"
       cacheStore $ LangStore cache
   where
@@ -102,61 +166,44 @@ buildCache extension toAsts = do
     astToCache n = LangProgramStore { langAst = n }
 
 inRange :: Position -> Range -> Bool
-inRange (Position l c) (Range (Position x y) (Position x' y')) = 
-  let startsOK = if l == x then c >= y else True
-      endsOK = if l == x' then c <= y' else True
+inRange (Position l c) (Range (Position x y) (Position x' y')) =
+  let startsOK = ((l /= x) || (c >= y))
+      endsOK = ((l /= x') || (c <= y'))
   in l >= x && l <= x' && startsOK && endsOK
 
-class Ranged sig where
-  range :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> Maybe Range
-  nameRange 
-    :: SomeName binder sig 
-    -> sig (F.ScopedAST binder sig n) (F.AST binder sig n) 
-    -> Maybe Range
-
-class RangedPattern pat where
-  foldrPat 
-    :: (SomePattern pat sig -> r -> r)
-    -> r
-    -> pat n l
-    -> r
-  rangePat :: pat n l -> Maybe Range
-  binderOf :: pat n l -> Maybe (F.NameBinder n l)
-
-
-findNarrowest :: 
+findNarrowest ::
   ( Bifoldable sig
-  , Ranged sig
+  , RangedSig sig
   , F.CoSinkable binder
-  , RangedPattern binder
+  , FoldablePat binder
   , F.Distinct n )
-  => Position 
-  -> F.AST binder sig n 
+  => Position
+  -> F.AST binder sig n
   -> Maybe (Either (SomePattern binder sig, SomeAST binder sig) (SomeAST binder sig))
 findNarrowest = ((fmap fst) .) . findNarrowest'
   where
-    findNarrowest' :: 
+    findNarrowest' ::
       ( Bifoldable sig
-      , Ranged sig
+      , RangedSig sig
       , F.CoSinkable binder
-      , RangedPattern binder
+      , FoldablePat binder
       , F.Distinct n )
-      => Position 
-      -> F.AST binder sig n 
+      => Position
+      -> F.AST binder sig n
       -> Maybe (Either (SomePattern binder sig, SomeAST binder sig) (SomeAST binder sig), Range)
     findNarrowest' pos ast = do
       sig <- case ast of
         F.Var{} -> Nothing
         F.Node s -> Just s
       r <- range sig
-      if not $ inRange pos r 
-        then Nothing 
-        else 
+      if not $ inRange pos r
+        then Nothing
+        else
           let narr = narrowest pos
           in bifoldr
             (\(F.ScopedAST binder a) -> case F.assertDistinct binder of
-              F.Distinct -> 
-                let narrPat = 
+              F.Distinct ->
+                let narrPat =
                       findNarrowestPat (SomeAST a) pos (SomePattern binder)
                     narrNode = findNarrowest' pos a
                 in narr $ narr narrPat narrNode
@@ -169,11 +216,11 @@ findNarrowest = ((fmap fst) .) . findNarrowest'
       _ -> id
     findNarrowestPat ast pos (SomePattern pat) = do
       r <- rangePat pat
-      if not $ inRange pos r 
+      if not $ inRange pos r
         then Nothing
-        else foldrPat 
-          (\p -> maybe (findNarrowestPat ast pos p) Just) 
-          (Just (Left (SomePattern pat, ast), r)) 
+        else foldrPat
+          (\p -> maybe (findNarrowestPat ast pos p) Just)
+          (Just (Left (SomePattern pat, ast), r))
           pat
 
 extractName :: (Bifoldable sig, F.Distinct n, F.CoSinkable binder)
@@ -189,29 +236,29 @@ extractName = \case
     extract' (F.ScopedAST binder t) = case F.assertDistinct binder of
       F.Distinct -> extract t
 
-nodeCovers :: Ranged sig 
+nodeCovers :: RangedSig sig
   => Position -> sig (F.ScopedAST binder sig m) (F.AST binder sig m) -> Bool
-nodeCovers pos = (maybe False (inRange pos)) . range
+nodeCovers pos = maybe False (inRange pos) . range
 
-patternNameRange :: (RangedPattern binder) 
+patternNameRange :: (FoldablePat binder)
   => SomeName binder sig -> SomePattern binder sig -> Maybe Range
 patternNameRange sn@(SomeName name') (SomePattern pat) = case binderOf pat of
-  Just binder -> 
+  Just binder ->
     if F.nameId name' == F.nameId (F.nameOf binder)
       then rangePat pat
       else Nothing
   _ -> foldrPat (\p -> maybe (patternNameRange sn p) Just) Nothing pat
 
 
-definitionRange :: 
+definitionRange ::
   ( Bifoldable sig
-  , Ranged sig
+  , RangedSig sig
   , F.CoSinkable binder
-  , RangedPattern binder )
+  , FoldablePat binder )
   => Position
   -> SomeScopeWithAST binder sig
   -> Maybe Range
-definitionRange pos (SomeScopeWithAST scope ast) = 
+definitionRange pos (SomeScopeWithAST scope ast) =
   findNarrowest pos ast >>= \case
     Left (SomePattern pat, _) -> rangePat pat
     Right (SomeAST node) -> do
@@ -219,35 +266,33 @@ definitionRange pos (SomeScopeWithAST scope ast) =
       (pat, _) <- findDefinition (nodeCovers pos) name' scope ast
       patternNameRange name' pat
 
-mentionedRanges :: 
+mentionedRanges ::
   ( Bifoldable sig
-  , Ranged sig
+  , RangedSig sig
   , F.CoSinkable binder
-  , RangedPattern binder )
+  , FoldablePat binder )
   => Position
   -> SomeScopeWithAST binder sig
   -> [Range]
-mentionedRanges pos (SomeScopeWithAST scope ast) = maybe [] id $ do
-  narrowest <- findNarrowest pos ast 
+mentionedRanges pos (SomeScopeWithAST scope ast) = fromMaybe [] $ do
+  narrowest <- findNarrowest pos ast
   (name', pat, definition) <- case narrowest of
-    Left (sp@(SomePattern p), ast) -> fmap 
-      (\nb -> (SomeName $ F.nameOf nb, sp, ast)) $ binderOf p
+    Left (sp@(SomePattern p), ast') -> fmap
+      (\nb -> (SomeName $ F.nameOf nb, sp, ast'))
+      (binderOf p)
     Right (SomeAST node) -> do
       name' <- extractName node
       (pat, definition) <- findDefinition (nodeCovers pos) name' scope ast
       Just (name', pat, definition)
-  let kidsRanges = catMaybes
-        $ map (nameRange' name') 
-        $ findRefs name' definition
+  let kidsRanges = mapMaybe nameRange' (findRefs name' definition)
   Just
-    $ maybe kidsRanges (:kidsRanges) 
+    $ maybe kidsRanges (:kidsRanges)
     $ patternNameRange name' pat
   where
-    nameRange' :: Ranged sig 
-      => SomeName binder sig -> SomeAST binder sig -> Maybe Range
-    nameRange' name' (SomeAST ast') = case ast' of
+    nameRange' :: RangedSig sig => SomeAST binder sig -> Maybe Range
+    nameRange' (SomeAST ast') = case ast' of
       F.Var{} -> Nothing
-      F.Node sig -> nameRange name' sig
+      F.Node sig -> range sig
 
 findDefinition ::
   ( F.Distinct n
@@ -280,7 +325,7 @@ findDefinition' isValid sn@(SomeName name') scope = \case
     sig
   where
     firstJust = maybe id (const . Just)
-    defScoped sig (F.ScopedAST binder node') = 
+    defScoped sig (F.ScopedAST binder node') =
       case (F.assertDistinct binder, F.assertExt binder) of
         (F.Distinct, F.Ext) ->
           let scope' = F.extendScopePattern binder scope
@@ -292,45 +337,36 @@ findDefinition' isValid sn@(SomeName name') scope = \case
             (False, _) -> Nothing
             (_, False) -> findDefinition' isValid sn scope' node'
             _ -> Just (SomePattern binder, SomeAST node')
-            
+
 findRefs :: (Bifoldable sig, F.CoSinkable binder)
-  => SomeName binder sig 
+  => SomeName binder sig
   -> SomeAST binder sig
   -> [SomeAST binder sig]
 findRefs sn (SomeAST ast) = case ast of
   F.Var{} -> []
-  F.Node sig -> bifoldMap 
+  F.Node sig -> bifoldMap
     (\(F.ScopedAST binder a) -> case F.assertDistinct binder of
-      F.Distinct -> findRefs' sn a ) 
-    (findRefs' sn) 
+      F.Distinct -> findRefs' sn a )
+    (findRefs' sn)
     sig
 
-findRefs' :: (F.Distinct m, Bifoldable sig, F.CoSinkable binder) 
+findRefs' :: (F.Distinct m, Bifoldable sig, F.CoSinkable binder)
   => SomeName binder sig -> F.AST binder sig m -> [SomeAST binder sig]
-findRefs' sn ast = 
+findRefs' sn ast =
   let grandKids = findRefs sn (SomeAST ast)
   in maybe grandKids (:grandKids) $ do
     name' <- extractName ast
-    if namesEq sn name' 
+    if namesEq sn name'
       then Just $ SomeAST ast
       else Nothing
   where
     namesEq (SomeName n) (SomeName n') = F.nameId n == F.nameId n'
 
-class TokenizableSig sig where
-  tokenize :: sig ScopedASTTokens ASTTokens -> [SemanticTokenAbsolute]
-
-class TokenizablePattern pat where
-  tokenizePat :: pat n l -> [SemanticTokenAbsolute]
-
-placeholderTokenize :: sig -> [SemanticTokenAbsolute]
-placeholderTokenize _ = []
-
 type ASTTokens = [SemanticTokenAbsolute]
 type ScopedASTTokens = (ASTTokens, ASTTokens)
 
-tokenizeAST :: (Bifunctor sig, TokenizableSig sig, TokenizablePattern binder) 
-  => F.AST binder sig n 
+tokenizeAST :: (Bifunctor sig, TokenizableSig sig, TokenizablePat binder)
+  => F.AST binder sig n
   -> [SemanticTokenAbsolute]
 tokenizeAST ast = case ast of
   F.Var{} -> []
@@ -338,65 +374,53 @@ tokenizeAST ast = case ast of
   where
     tokenizeScopedAST (F.ScopedAST pat body) = (tokenizePat pat, tokenizeAST body)
 
-semanticTokens :: (Bifunctor sig, TokenizableSig sig, TokenizablePattern binder) 
+semanticTokens :: (Bifunctor sig, TokenizableSig sig, TokenizablePat binder)
   => Handler (LSP (SomeScopeWithAST binder sig)) 'Method_TextDocumentSemanticTokensFull
 semanticTokens req responder = do
   LangStore cache <- getCachedStore
-  let uri = req ^. LSP.params . LSP.textDocument . LSP.uri 
+  let uri = req ^. LSP.params . LSP.textDocument . LSP.uri
       asts = maybe [] langAst $ (uriToFilePath uri) >>= (\x -> Map.lookup x cache)
       tokens = concatMap tokenizeTree asts
-      encoded = encodeTokens defaultSemanticTokensLegend 
+      encoded = encodeTokens defaultSemanticTokensLegend
         $ relativizeTokens tokens
-  either 
-    (\_ -> return ()) 
+  either
+    (\_ -> return ())
     (responder . Right . InL . SemanticTokens Nothing)
     encoded
   where
     tokenizeTree (SomeScopeWithAST _ a) = tokenizeAST a
 
-class Hoverable sig where
-  hoverData :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> [String]
-  hoverData = placeholderHoverData
-
-class HoverablePat pat where
-  hoverDataPat :: pat n l -> [String]
-
-placeholderHoverData _ = []
-
-showHover :: 
+showHover ::
   ( Bifoldable sig
-  , Hoverable sig
+  , HoverableSig sig
   , HoverablePat binder
-  , DiagnosableSig sig
-  , Ranged sig
+  , RangedSig sig
   , F.CoSinkable binder
-  , RangedPattern binder )
+  , FoldablePat binder )
   => Handler (LSP (SomeScopeWithAST binder sig)) 'Method_TextDocumentHover
 showHover req responder = do
   LangStore cache <- getCachedStore
   let parameters = req ^. LSP.params
-      uri = parameters ^. LSP.textDocument . LSP.uri 
+      uri = parameters ^. LSP.textDocument . LSP.uri
       pos = parameters ^. LSP.position
-      
-      asts = maybe [] langAst $ (uriToFilePath uri) >>= (\x -> Map.lookup x cache)
+      asts = maybe [] langAst $ uriToFilePath uri >>= (`Map.lookup` cache)
       hover = firstJustL $ map (hoverMessage pos) asts
-  maybe 
-    (return ()) 
-    (responder . Right . InL . toHover) 
+  maybe
+    (return ())
+    (responder . Right . InL . toHover)
     hover
-  showDiagnostics uri
   where
     toHover (msg, range') = Hover (InL $ mkMarkdown $ T.pack msg) range'
 
-hoverMessage :: 
+hoverMessage ::
   ( Bifoldable sig
-  , Hoverable sig
+  , HoverableSig sig
   , HoverablePat binder
-  , Ranged sig
+  , RangedSig sig
   , F.CoSinkable binder
-  , RangedPattern binder )
+  , FoldablePat binder )
   => Position
-  -> SomeScopeWithAST binder sig 
+  -> SomeScopeWithAST binder sig
   -> Maybe (String, Maybe Range)
 hoverMessage p (SomeScopeWithAST _ ast) = do
   narrowest <- findNarrowest p ast
@@ -405,72 +429,151 @@ hoverMessage p (SomeScopeWithAST _ ast) = do
         Left (SomePattern pat, _) -> (hoverDataPat pat, rangePat pat)
         _ -> ([], Nothing)
   if null hd
-    then Nothing 
-    else Just 
-      $ ( concatMap (\l -> "- " ++ l ++ "\n\n") hd
-        , maybeRange )
+    then Nothing
+    else Just ( concatMap (\l -> "- " ++ l ++ "\n\n") hd, maybeRange )
 
-class DiagnosableSig sig where
-  diagnose :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> [Diagnostic]
-  diagnose = placeholderDiagnose
 
-placeholderDiagnose _ = []
-
-showDiagnostics :: (F.CoSinkable binder, Bifoldable sig, DiagnosableSig sig)
+showDiagnostics :: (F.CoSinkable binder, Bifoldable sig, DiagnosableSig sig, DiagnosablePat binder)
   => Uri
   -> LSP (SomeScopeWithAST binder sig) ()
 showDiagnostics uri = do
   LangStore cache <- getCachedStore
-  sendNotification SMethod_WindowShowMessage 
-    $ ShowMessageParams MessageType_Info 
-    $ T.pack 
-    $ "[showDiagnostics] called with cache length: " ++ show (length cache)
   let asts = maybe [] langAst $ uriToFilePath uri
-        >>= (\x -> Map.lookup x cache)
+        >>= (`Map.lookup` cache)
       messages = concatMap diagnoseTree asts
-  sendNotification SMethod_TextDocumentPublishDiagnostics 
+  sendNotification SMethod_TextDocumentPublishDiagnostics
       $ PublishDiagnosticsParams uri Nothing messages
   where
     diagnoseTree (SomeScopeWithAST _ tree) = diagnoseAST tree
-  -- sendNotification SMethod_WindowShowMessage 
-  --   $ ShowMessageParams MessageType_Info 
-  --   $ T.pack 
-  --   $ "diagnostic messages: " ++ show messages
 
-diagnoseAST :: (F.CoSinkable binder, Bifoldable sig, DiagnosableSig sig)
+showAllDiagnostics :: (F.CoSinkable binder, Bifoldable sig, DiagnosableSig sig, DiagnosablePat binder)
+  => LSP (SomeScopeWithAST binder sig) ()
+showAllDiagnostics = do
+  LangStore cache <- getCachedStore
+  mapM_ (showDiagnostics . filePathToUri) (Map.keys cache)
+
+rebuildFileCache
+  :: (String -> [SomeScopeWithAST binder sig])
+  -> Uri
+  -> String
+  -> LSP (SomeScopeWithAST binder sig) ()
+rebuildFileCache buildAsts' uri text = case uriToFilePath uri of
+  Nothing -> return ()
+  Just path -> do
+    LangStore cache <- getCachedStore
+    let asts = buildAsts' text
+        cache' = Map.insert path LangProgramStore { langAst = asts } cache
+    cacheStore (LangStore cache')
+
+debounceRediagnose ::
+  ( F.CoSinkable binder
+  , Bifoldable sig
+  , DiagnosableSig sig
+  , DiagnosablePat binder )
+  => (String -> [SomeScopeWithAST binder sig])
+  -> LangEnv (SomeScopeWithAST binder sig)
+  -> Uri
+  -> String
+  -> LSP (SomeScopeWithAST binder sig) ()
+debounceRediagnose buildAsts' langEnv uri text = liftIO $ do
+  timers <- readTVarIO (debounceTimers langEnv)
+  mapM_ killThread (Map.lookup uri timers)
+  maybeEnv <- readIORef (lspEnvRef langEnv)
+  case maybeEnv of
+    Nothing -> return ()
+    Just env -> do
+      tid <- forkIO $ do
+        threadDelay 500000
+        flip runReaderT langEnv . runLspT env $ do
+          rebuildFileCache buildAsts' uri text
+          showDiagnostics uri
+          void $ sendRequest SMethod_WorkspaceSemanticTokensRefresh Nothing $ \_ -> return ()
+      atomically $ modifyTVar' (debounceTimers langEnv) (Map.insert uri tid)
+
+diagnoseAST :: (F.CoSinkable binder, Bifoldable sig, DiagnosableSig sig, DiagnosablePat binder)
   => F.AST binder sig n -> [Diagnostic]
 diagnoseAST = \case
   F.Var _ -> []
   F.Node n -> diagnose n ++ bifoldMap
-    -- TODO: DiagnosablePattern
-    (\(F.ScopedAST _ a) -> diagnoseAST a)
+    (\(F.ScopedAST binder a) -> diagnosePat binder ++ diagnoseAST a)
     diagnoseAST
     n
 
-handlers :: 
+typecheck ::
+  ( Bifunctor sig
+  , TypeDeductiveSig sig sig' ty binder
+  , TypedSig sig' ty
+  , TypedPat binder ty
+  , F.Distinct n
+  , F.CoSinkable binder )
+  => F.NameMap n ty -> ty -> F.AST binder sig n -> F.AST binder sig' n
+typecheck nm typ = \case
+  F.Var n -> F.Var n
+  F.Node sig -> F.Node $ deduceType typ $ bimap
+    (\(F.ScopedAST binder a) -> case F.assertDistinct binder of
+      F.Distinct ->
+        let f = first (F.ScopedAST binder) . check (addPattern binder nm) a
+        in (patTy binder, f)
+      )
+    (check nm)
+    sig
+  where
+    astTy :: (TypedSig sig ty) => F.NameMap n ty -> F.AST binder sig n -> ty
+    astTy nm' = \case
+      F.Var n -> F.lookupName n nm'
+      F.Node sig -> ty sig
+    check ::
+      ( Bifunctor sig
+      , TypeDeductiveSig sig sig' ty binder
+      , TypedSig sig' ty
+      , TypedPat binder ty
+      , F.Distinct n
+      , F.CoSinkable binder )
+      => F.NameMap n ty
+      -> F.AST binder sig n
+      -> ty
+      -> (F.AST binder sig' n, ty)
+    check nm' a t =
+      let a' = typecheck nm' t a
+      in (a', astTy nm' a')
+
+handlers ::
   ( Bifunctor sig
   , Bifoldable sig
   , TokenizableSig sig
-  , Hoverable sig
+  , HoverableSig sig
   , HoverablePat binder
   , DiagnosableSig sig
-  , Ranged sig
+  , DiagnosablePat binder
+  , RangedSig sig
   , F.CoSinkable binder
-  , RangedPattern binder
-  , TokenizablePattern binder )
-  => LSConfiguration binder sig 
+  , FoldablePat binder
+  , TokenizablePat binder )
+  => LSConfiguration binder sig
+  -> LangEnv (SomeScopeWithAST binder sig)
   -> Handlers (LSP (SomeScopeWithAST binder sig))
-handlers (LSConfiguration fileExtension buildAsts printTerm) =
-  let cacheAsts = buildCache fileExtension buildAsts 
+handlers (LSConfiguration fileExtension buildAsts) langEnv =
+  let cacheAsts = buildCache fileExtension buildAsts
   in mconcat
-  [ notificationHandler SMethod_Initialized $ const cacheAsts
+  [ notificationHandler SMethod_Initialized $ const $ do
+      cacheAsts
+      showAllDiagnostics
   , notificationHandler SMethod_TextDocumentDidOpen $ \noti -> do
-    let uri = noti ^. LSP.params . LSP.textDocument . LSP.uri 
-    showDiagnostics uri
+      let uri = noti ^. LSP.params . LSP.textDocument . LSP.uri
+      showDiagnostics uri
   , notificationHandler SMethod_TextDocumentDidChange $ \noti -> do
-    let uri = noti ^. LSP.params . LSP.textDocument . LSP.uri 
-    showDiagnostics uri
-  , notificationHandler SMethod_WorkspaceDidChangeWatchedFiles $ const cacheAsts
+      let uri     = noti ^. LSP.params . LSP.textDocument . LSP.uri
+          changes = noti ^. LSP.params . LSP.contentChanges
+          maybeText = case changes of
+            [TextDocumentContentChangeEvent (InR whole)] ->
+              Just (T.unpack (whole ^. LSP.text))
+            _ -> Nothing
+      case maybeText of
+        Just text -> debounceRediagnose buildAsts langEnv uri text
+        Nothing -> showDiagnostics uri
+  , notificationHandler SMethod_WorkspaceDidChangeWatchedFiles $ const $ do
+      cacheAsts
+      showAllDiagnostics
   , requestHandler SMethod_TextDocumentDefinition $ \req responder -> do
     LangStore cache <- getCachedStore
     let parameters = req ^. LSP.params
@@ -478,15 +581,11 @@ handlers (LSConfiguration fileExtension buildAsts printTerm) =
         fileUri = parameters ^. LSP.textDocument . LSP.uri
         maybeCurrentFile = uriToFilePath fileUri
         asts = maybe [] langAst (maybeCurrentFile >>= lookupFile cache)
-        maybeRange = firstJustL 
+        maybeRange = firstJustL
           $ map (definitionRange pos) asts
-    sendNotification SMethod_WindowShowMessage 
-      $ ShowMessageParams MessageType_Info 
-      $ T.pack 
-      $ "Current ASTS: " ++ show (map (\(SomeScopeWithAST _ ast) -> printTerm (SomeAST ast)) asts)
     let maybeLocation = fmap (Location fileUri) maybeRange
-    responder 
-      $ maybeToEither (responseError "Did not find the definition") 
+    responder
+      $ maybeToEither (responseError "Did not find the definition")
       $ fmap (InL . Definition . InL) maybeLocation
   , requestHandler SMethod_TextDocumentRename $ \req responder -> do
     let parameters = req ^. LSP.params
@@ -510,18 +609,19 @@ handlers (LSConfiguration fileExtension buildAsts printTerm) =
     lookupFile cache x = Map.lookup x cache
     responseError comment = TResponseError (InL LSPErrorCodes_RequestFailed) (T.pack comment) Nothing
 
-runLanguageServer :: 
+runLanguageServer ::
   ( Bifunctor sig
   , Bifoldable sig
   , TokenizableSig sig
-  , Hoverable sig
+  , HoverableSig sig
   , HoverablePat binder
   , DiagnosableSig sig
-  , Ranged sig
+  , DiagnosablePat binder
+  , RangedSig sig
   , F.CoSinkable binder
-  , RangedPattern binder
-  , TokenizablePattern binder )
-  => LSConfiguration binder sig 
+  , FoldablePat binder
+  , TokenizablePat binder )
+  => LSConfiguration binder sig
   -> IO ()
 runLanguageServer config = do
   langEnv <- defaultLangEnv
@@ -531,49 +631,20 @@ runLanguageServer config = do
       , onConfigChange = const $ pure ()
       , defaultConfig = ()
       , configSection = T.pack "demo"
-      , doInitialize = \env _req -> pure $ Right env
-      , staticHandlers = \_caps -> handlers config
-      , interpretHandler = \env -> Iso (flip runReaderT langEnv . runLspT env) liftIO
+      , doInitialize = \env _req -> do
+          liftIO $ writeIORef (lspEnvRef langEnv) (Just env)
+          pure $ Right env
+      , staticHandlers = \_caps -> handlers config langEnv
+      , interpretHandler = \env -> Iso
+          (flip runReaderT langEnv . runLspT env)
+          liftIO
       , options = defaultOptions
+          { optTextDocumentSync = Just TextDocumentSyncOptions
+              { _openClose         = Just True
+              , _change            = Just TextDocumentSyncKind_Full
+              , _willSave          = Nothing
+              , _willSaveWaitUntil = Nothing
+              , _save              = Nothing
+              }
+          }
       }
-
-class TypeDeductive sig sig' ty binder where
-  deduceType 
-    :: ty 
-    -> sig 
-      (ty, ty -> (F.ScopedAST binder sig' n, ty)) 
-      (ty -> (F.AST binder sig' n, ty)) 
-    -> sig' (F.ScopedAST binder sig' n) (F.AST binder sig' n)
-
-class Typed sig ty where
-  ty :: sig (F.ScopedAST binder sig n) (F.AST binder sig n) -> ty
-
-class TypedPattern pat ty where
-  patTy :: pat n l -> ty
-  addPattern :: pat n l -> F.NameMap n ty -> F.NameMap l ty
-
-typecheck :: (Bifunctor sig, TypeDeductive sig sig' ty binder, Typed sig' ty, TypedPattern binder ty, F.Distinct n, F.CoSinkable binder) 
-  => F.NameMap n ty -> ty -> F.AST binder sig n -> F.AST binder sig' n
-typecheck nm typ = \case 
-  F.Var n -> F.Var n
-  F.Node sig -> F.Node $ deduceType typ $ bimap 
-    (\(F.ScopedAST binder a) -> case F.assertDistinct binder of
-      F.Distinct -> 
-        let f = (first (F.ScopedAST binder)) . check (addPattern binder nm) a
-        in (patTy binder, f)
-      ) 
-    (check nm)
-    sig
-  where
-    astTy :: (Typed sig ty) => F.NameMap n ty -> F.AST binder sig n -> ty
-    astTy nm' = \case
-      F.Var n -> F.lookupName n nm'
-      F.Node sig -> ty sig
-    check :: (Bifunctor sig, TypeDeductive sig sig' ty binder, Typed sig' ty, TypedPattern binder ty, F.Distinct n, F.CoSinkable binder) 
-      => F.NameMap n ty 
-      -> F.AST binder sig n
-      -> ty 
-      -> (F.AST binder sig' n, ty)
-    check nm' a t = 
-      let a' = typecheck nm' t a
-      in (a', astTy nm' a')

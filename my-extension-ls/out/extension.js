@@ -27,7 +27,7 @@ var client;
 function activate(context) {
     // Define the server options
     // This is where you specify how to run YOUR executable
-    const exePath = "/Users/kf/Documents/projects/uni/free-foil-ls/.stack-work/install/aarch64-osx/eb4a84564335184ca4a01fe1e2bed2f3937be59b7711381f2136c8e5abacfabd/9.10.3/bin/free-foil-ls-exe";
+    const exePath = "/Users/kf/Documents/projects/uni/free-foil-ls/.stack-work/install/aarch64-osx/3146d80ab82fce8dc4fd9dfc1fb9ef15741c5c7341ba15c165ce4a568c264d55/9.10.3/bin/free-foil-ls-exe";
     // const exePath = binPath + "/hs-ls";
     const serverOptions = {
         run: {

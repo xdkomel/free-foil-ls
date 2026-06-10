@@ -22,36 +22,16 @@
 
 module AgnosticLanguageServer.AgnosticLanguageServerFlan where
 
-import Common.LanguageServerCache
-import qualified Control.Monad.Foil.Relative as F
 import qualified Control.Monad.Foil.Internal as F
 import qualified Control.Monad.Free.Foil as F
-import Control.Arrow 
 import qualified Data.Map as Map
-import qualified Data.IntMap as IntMap
 import qualified Data.Text as T
 import qualified Language.LSP.Protocol.Types as LSP
 import Language.LSP.Protocol.Types 
   ( SemanticTokenAbsolute(..)
-  , SemanticTokenTypes(..)
-  , SemanticTokenModifiers(..) )
-import Language.LSP.Protocol.Message 
-import Language.LSP.Server 
-import qualified Language.LSP.Protocol.Lens as LSP
-import Control.Monad.Reader
-import Control.Monad (unless)
-import Data.Functor (void)
-import System.FilePath.Glob (compile, globDir)
-import Control.Lens ((^.), (#))
-import Data.Maybe (catMaybes, isJust, isNothing)
-import Data.Coerce (coerce)
-import Data.Kind (Type)
-import Data.Bifoldable (Bifoldable, bifoldMap)
-import Data.Bifunctor (Bifunctor, bimap)
-import Data.Bitraversable
-import Data.ZipMatchK.Generic (ZipMatchK)
+  , SemanticTokenTypes(..) )
+import Data.Bifunctor (bimap)
 import qualified Flan.Abs as R
-import qualified Flan.Print as R
 import qualified Flan.Lex as R
 import qualified Flan.Par as R
 import Common.Flan
@@ -72,7 +52,7 @@ type Binder = FlanPattern PosAnn FlanType'
 type Sig = FlanF PosAnn NodeAnn
 type AST = F.AST Binder Sig
 
-buildAsts' :: FunBuildASTs Binder Sig
+buildAsts' :: String -> [SomeScopeWithAST Binder Sig]
 buildAsts' input = 
   let ts = R.tokens input
       ast = either (const Nothing) Just (R.pProgram ts) 
@@ -119,6 +99,39 @@ buildRanges = \case
         ConstF _ a _ -> a
         ErrorF _ a _ -> a
 
+instance RangedSig Sig where
+  range = \case
+    VarF a a' _ _ -> r a a'
+    AppF a a' _ _ -> r a a'
+    LamF (LamAnn a _) a' _ -> r a a'
+    LetF (LetAnn a _ _) a' _ _ -> r a a'
+    PairF (PairAnn a _ _) a' _ _ -> r a a'
+    IfF (IfAnn a _ _) a' _ _ _ -> r a a'
+    ConstF a a' _ -> r a a'
+    ErrorF a a' _ -> r a a'
+    where
+      r s (NodeAnn e _ _) = s >>= \sp -> fmap (\ep -> toRangePos sp ep) e
+
+instance FoldablePat Binder where
+  foldrPat f acc = \case
+    PatternWildcard{} -> acc
+    PatternVar{} -> acc
+    PatternPair _ _ _ l r -> f (SomePattern l) $ f (SomePattern r) acc
+  
+  rangePat = \case
+    PatternWildcard pos _ _ -> fmap (flip toRangeLen $ 1) pos
+    PatternVar pos _ _ str _ -> fmap (flip toRangeLen $ length str) pos
+    PatternPair (PatternPairAnn pos _ pos') _ _ _ _ -> do
+      p <- pos
+      p' <- pos'
+      Just $ toRangePos p p'
+  
+  binderOf = \case
+    PatternWildcard{} -> Nothing
+    PatternVar _ _ _ _ b -> Just b
+    PatternPair{} -> Nothing
+
+
 lspos i = fromIntegral $ i - 1
 
 toRangeLen :: (Int, Int) -> Int -> LSP.Range
@@ -127,8 +140,8 @@ toRangeLen (x, y) len = LSP.mkRange (lspos x) (lspos y) (lspos x) (lspos $ y + l
 toRangePos :: (Int, Int) -> (Int, Int) -> LSP.Range
 toRangePos (x, y) (x', y') = LSP.mkRange (lspos x) (lspos y) (lspos x') (lspos y')
 
-printTerm' :: SomeAST Binder Sig -> String
-printTerm' (SomeAST x) = showFlan Left Right x
+-- printTerm' :: SomeAST Binder Sig -> String
+-- printTerm' (SomeAST x) = showFlan Left Right x
 
 data ScopedType a (s :: F.S) where
   ScopedType :: FlanType a -> ScopedType a n
@@ -154,7 +167,7 @@ resolveTy a b = case (a, b) of
 instance F.Sinkable (ScopedType a) where
   sinkabilityProof _ (ScopedType t) = ScopedType t
 
-instance Typed Sig FlanType' where
+instance TypedSig Sig FlanType' where
   ty = \case
     VarF _ (NodeAnn _ t _) _ _ -> t
     AppF _ (NodeAnn _ t _) _ _ -> t
@@ -165,7 +178,7 @@ instance Typed Sig FlanType' where
     ConstF _ (NodeAnn _ t _) _ -> t
     ErrorF _ (NodeAnn _ t _) _ -> t
 
-instance TypedPattern Binder FlanType' where
+instance TypedPat Binder FlanType' where
   patTy = \case
     PatternWildcard _ _ t -> t 
     PatternVar _ _ t _ _ -> t 
@@ -188,7 +201,7 @@ intTypeEmp = IntType Nothing
 strTypeEmp :: FlanType'
 strTypeEmp = StrType Nothing
 
-instance TypeDeductive (FlanF PosAnn PosAnn) Sig FlanType' Binder where
+instance TypeDeductiveSig (FlanF PosAnn PosAnn) Sig FlanType' Binder where
   deduceType exTy = \case
     VarF a a' vOf s -> 
       let (v, vTy) = vOf exTy
@@ -280,52 +293,7 @@ instance TokenizableSig Sig where
         ConstStr _ -> SemanticTokenTypes_String
         ConstBool _ -> SemanticTokenTypes_Keyword
 
-diagnosticKey = T.pack "Flan Server Diagnostic"
-instance DiagnosableSig Sig where
-  diagnose = \case
-    ErrorF (Just (x, y)) (NodeAnn _ _ errs) str -> 
-      toDiagnostic x y (length str) 
-        $ combine 
-        $ ("Unbound symbol"):errs
-    VarF (Just (x, y)) (NodeAnn _ _ errs) _ str -> 
-      if null errs then [] else
-        toDiagnostic x y (length str) $ combine errs
-    ConstF (Just (x, y)) (NodeAnn _ _ errs) c ->
-      if null errs then [] else
-        toDiagnostic x y (length $ show c) $ combine errs
-    AppF (Just (x, y)) (NodeAnn _ _ errs) _ _ ->
-      if null errs then [] else
-        toDiagnostic x y 1 $ combine errs 
-    LamF (LamAnn (Just (x, y)) _) (NodeAnn _ _ errs) _ -> 
-      if null errs then [] else
-        toDiagnostic x y 1 $ combine errs 
-    LetF (LetAnn (Just (x, y)) _ _) (NodeAnn _ _ errs) _ _ ->
-      if null errs then [] else
-        toDiagnostic x y 1 $ combine errs
-    PairF (PairAnn (Just (x, y)) _ _) (NodeAnn _ _ errs) _ _ -> 
-      if null errs then [] else
-        toDiagnostic x y 1 $ combine errs 
-    IfF (IfAnn (Just (x, y)) _ _) (NodeAnn _ _ errs) _ _ _ ->
-      if null errs then [] else
-        toDiagnostic x y 1 $ combine errs 
-    _ -> []
-    where
-      combine :: [String] -> String
-      combine = concatMap (++ "\n\n")
-      toDiagnostic x y len msg = [
-        LSP.Diagnostic 
-          (toRangeLen (x, y) len)
-          (Just LSP.DiagnosticSeverity_Error)
-          Nothing
-          Nothing
-          (Just diagnosticKey)
-          (T.pack msg)
-          Nothing
-          Nothing
-          Nothing
-        ]
-
-instance TokenizablePattern Binder where
+instance TokenizablePat Binder where
   tokenizePat = \case
     PatternWildcard a a' t -> (mkToken a 1 SemanticTokenTypes_Variable) 
       ++ (mkToken a' 1 SemanticTokenTypes_Keyword)
@@ -374,7 +342,65 @@ mkToken ann len tokenTy = maybe [] ((\x -> [x]) . build) (R.hasPosition ann)
       , _length = fromIntegral len
       }
 
-instance Hoverable Sig where
+diagnosticKey :: T.Text
+diagnosticKey = T.pack "Flan Server Diagnostic"
+
+combineMsgs :: [String] -> String
+combineMsgs = concatMap (++ "\n\n")
+
+flanDiagnostic :: Int -> Int -> Int -> String -> [LSP.Diagnostic]
+flanDiagnostic x y len msg = [LSP.Diagnostic
+  (toRangeLen (x, y) len)
+  (Just LSP.DiagnosticSeverity_Error)
+  Nothing
+  Nothing
+  (Just diagnosticKey)
+  (T.pack msg)
+  Nothing
+  Nothing
+  Nothing]
+
+diagnoseType :: FlanType' -> [LSP.Diagnostic]
+diagnoseType = \case
+  UnknownType (Just (x, y)) str -> flanDiagnostic x y (length str) ("Unknown type: " ++ str ++ "\n\n")
+  FunType _ l r -> diagnoseType l ++ diagnoseType r
+  PairType _ l r -> diagnoseType l ++ diagnoseType r
+  _ -> []
+
+instance DiagnosablePat Binder where
+  diagnosePat = \case
+    PatternWildcard _ _ t -> diagnoseType t
+    PatternVar _ _ t _ _ -> diagnoseType t
+    PatternPair _ _ t l r -> diagnoseType t ++ diagnosePat l ++ diagnosePat r
+
+instance DiagnosableSig Sig where
+  diagnose = \case
+    ErrorF (Just (x, y)) (NodeAnn _ _ errs) str ->
+      flanDiagnostic x y (length str) $ combineMsgs $ "Unbound symbol" : errs
+    VarF (Just (x, y)) (NodeAnn _ _ errs) _ str ->
+      if null errs then [] else
+        flanDiagnostic x y (length str) $ combineMsgs errs
+    ConstF (Just (x, y)) (NodeAnn _ _ errs) c ->
+      if null errs then [] else
+        flanDiagnostic x y (length $ show c) $ combineMsgs errs
+    AppF (Just (x, y)) (NodeAnn _ _ errs) _ _ ->
+      if null errs then [] else
+        flanDiagnostic x y 1 $ combineMsgs errs
+    LamF (LamAnn (Just (x, y)) _) (NodeAnn _ _ errs) _ ->
+      if null errs then [] else
+        flanDiagnostic x y 1 $ combineMsgs errs
+    LetF (LetAnn (Just (x, y)) _ _) (NodeAnn _ _ errs) _ _ ->
+      if null errs then [] else
+        flanDiagnostic x y 1 $ combineMsgs errs
+    PairF (PairAnn (Just (x, y)) _ _) (NodeAnn _ _ errs) _ _ ->
+      if null errs then [] else
+        flanDiagnostic x y 1 $ combineMsgs errs
+    IfF (IfAnn (Just (x, y)) _ _) (NodeAnn _ _ errs) _ _ _ ->
+      if null errs then [] else
+        flanDiagnostic x y 1 $ combineMsgs errs
+    _ -> []
+
+instance HoverableSig Sig where
   hoverData = \case
     VarF _ a _ _ -> fromAnn a
     ConstF _ a _ -> fromAnn a
@@ -393,53 +419,9 @@ instance HoverablePat Binder where
     PatternVar _ _ t _ _ -> [show t]
     PatternPair _ _ t _ _ -> [show t]
 
-instance Ranged Sig where
-  range = \case
-    VarF a a' _ _ -> r a a'
-    AppF a a' _ _ -> r a a'
-    LamF (LamAnn a _) a' _ -> r a a'
-    LetF (LetAnn a _ _) a' _ _ -> r a a'
-    PairF (PairAnn a _ _) a' _ _ -> r a a'
-    IfF (IfAnn a _ _) a' _ _ _ -> r a a'
-    ConstF a a' _ -> r a a'
-    ErrorF a a' _ -> r a a'
-    where
-      r s (NodeAnn e _ _) = s >>= \sp -> fmap (\ep -> toRangePos sp ep) e
-  nameRange _ = range
-
-instance RangedPattern Binder where
-  foldrPat f acc = \case
-    PatternWildcard{} -> acc
-    PatternVar{} -> acc
-    PatternPair _ _ _ l r -> f (SomePattern l) $ f (SomePattern r) acc
-  
-  rangePat = \case
-    PatternWildcard pos _ _ -> fmap (flip toRangeLen $ 1) pos
-    PatternVar pos _ _ str _ -> fmap (flip toRangeLen $ length str) pos
-    PatternPair (PatternPairAnn pos _ pos') _ _ _ _ -> do
-      p <- pos
-      p' <- pos'
-      Just $ toRangePos p p'
-  
-  binderOf = \case
-    PatternWildcard{} -> Nothing
-    PatternVar _ _ _ _ b -> Just b
-    PatternPair{} -> Nothing
-
-
-  -- nameRangePat sn@(SomeName n) (SomePattern pat) = case pat of
-  --   PatternWildcard{} -> Nothing
-  --   PatternVar pos _ _ str binder -> 
-  --     if (F.nameId $ F.nameOf binder) == (F.nameId n)
-  --       then fmap (flip toRangeLen (length str)) pos
-  --       else Nothing
-  --   PatternPair _ _ _ l r -> lastJustR 
-  --     (nameRangePat sn (SomePattern l)) 
-  --     (nameRangePat sn (SomePattern r))
-
 runFlanLS :: IO ()
 runFlanLS = runLanguageServer LSConfiguration
   { fileExtension = "flan"
   , buildAsts = buildAsts'
-  , printTerm = printTerm'
+  -- , printTerm = printTerm'
   }

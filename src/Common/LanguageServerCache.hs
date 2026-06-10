@@ -16,8 +16,11 @@
 module Common.LanguageServerCache where
 
 import qualified Data.Map as Map
+import Control.Concurrent (ThreadId)
 import Control.Concurrent.STM
 import Control.Monad.Reader
+import Data.IORef (IORef, newIORef)
+import Language.LSP.Protocol.Types (Uri)
 import Language.LSP.Server as LSP
 
 newtype LangProgramStore ast = LangProgramStore 
@@ -27,14 +30,22 @@ newtype LangProgramStore ast = LangProgramStore
 newtype LangStore ast
   = LangStore (Map.Map FilePath (LangProgramStore ast)) 
 
-newtype LangEnv ast = LangEnv
-  { store :: TVar (LangStore ast)
+data LangEnv ast = LangEnv
+  { store          :: TVar (LangStore ast)
+  , debounceTimers :: TVar (Map.Map Uri ThreadId)
+  , lspEnvRef      :: IORef (Maybe (LanguageContextEnv ()))
   }
 
 defaultLangEnv :: IO (LangEnv ast)
 defaultLangEnv = do
-  emptyCache <- newTVarIO $ LangStore Map.empty
-  return LangEnv { store = emptyCache }
+  emptyCache   <- newTVarIO $ LangStore Map.empty
+  emptyTimers  <- newTVarIO Map.empty
+  emptyEnvRef  <- newIORef Nothing
+  return LangEnv
+    { store          = emptyCache
+    , debounceTimers = emptyTimers
+    , lspEnvRef      = emptyEnvRef
+    }
 
 type LSP ast = LspT () (ReaderT (LangEnv ast) IO)
 
