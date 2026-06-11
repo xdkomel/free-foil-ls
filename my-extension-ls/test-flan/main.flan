@@ -1,4 +1,4 @@
-| sum: Int -> Int -> Int = /a => /b => sum a b
+| sum: Int -> Int -> Int = /a => /b => sum a 23
 
 -- This is a comment
 | strFits: Str -> Int -> Bool = 

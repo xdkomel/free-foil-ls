@@ -10,14 +10,7 @@ extra-source-files:
 - README.md
 - CHANGELOG.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/free-foil-ls#readme>
+description: Please see the README on GitHub at <https://github.com/githubuser/free-foil-ls#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -37,75 +30,28 @@ ghc-options:
 library:
   source-dirs: src
   exposed-modules:
-  - Lib
-  - BasicLS.BasicLS
-  - FoilLS.LanguageServerCache
-  - FoilLS.FoilLS
-  - AgnosticFoilLS.AgnosticLS
-  - AgnosticFoilLS.AgnosticLSLambdaPi
-  - AgnosticFoilLSAlt.AgnosticFoilLSAlt
-  - AgnosticFoilLSAlt.LambdaPiLSAlt
-  - AgnosticLanguageServer.AgnosticLanguageServer
-  - AgnosticLanguageServer.AgnosticLanguageServerFlan
-  - Common.LambdaPi
-  - Common.Flan
-  - Common.FlanConversion
-  - Common.LanguageServerCache
+  - AgnosticLanguageServer
   other-modules:
-  - Hsls.AbsHsls
-  - Hsls.LexHsls
-  - Hsls.ParHsls
-  - Hsls.PrintHsls
-  - Lampi.AbsLampi
-  - Lampi.LayoutLampi
-  - Lampi.LexLampi
-  - Lampi.ParLampi
-  - Lampi.PrintLampi
-  - Flan.Abs
-  - Flan.Lex
-  - Flan.Par
-  - Flan.Print
+  - AgnosticLanguageServer.AST
+  - AgnosticLanguageServer.Cache
+  - AgnosticLanguageServer.Classes
+  - AgnosticLanguageServer.Common
+  - AgnosticLanguageServer.Types
+  - AgnosticLanguageServer.Handlers.Definition
+  - AgnosticLanguageServer.Handlers.Diagnostics
+  - AgnosticLanguageServer.Handlers.Hover
+  - AgnosticLanguageServer.Handlers.Rename
+  - AgnosticLanguageServer.Handlers.SemanticTokens
+  - AgnosticLanguageServer.Handlers.Sync
   dependencies:
   - lsp
   - lsp-types
-  - lsp-test
   - text
-  - transformers
-  - aeson
-  - Glob >=0.9.3
-  - array >=0.5.3.0
   - stm >=2.5.0.0
-  - mtl >=2.2.2
   - containers >=0.7
+  - mtl >=2.2.2
+  - Glob >=0.9.3
   - lens >=4.17
-  - IntervalMap >= 0.6.2.1
-  - free-foil 
-  - bifunctors
-  - template-haskell
-  - kind-generics-th 
-  - sort
+  - free-foil
   ghc-options:
   - -fno-defer-type-errors
-
-executables:
-  free-foil-ls-exe:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -fno-defer-type-errors
-    dependencies:
-    - free-foil-ls
-
-tests:
-  free-foil-ls-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - free-foil-ls

@@ -1,0 +1,63 @@
+name:                flan-language-server
+version:             0.1.0.0
+github:              "xdkomel/flan-language-server"
+license:             BSD-3-Clause
+author:              "Kamil Foatov"
+maintainer:          "xdkomel@gmail.com"
+copyright:           "2025 Kamil Foatov"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+description: Flan language server built on top of the free-foil-ls library
+
+dependencies:
+- base >= 4.7 && < 5
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+- -fno-defer-type-errors
+
+library:
+  source-dirs: src
+  exposed-modules:
+  - LanguageServer.AgnosticLanguageServerFlan
+  - LanguageServer.Flan
+  - LanguageServer.FlanConversion
+  other-modules:
+  - Flan.Abs
+  - Flan.Lex
+  - Flan.Par
+  - Flan.Print
+  dependencies:
+  - free-foil-ls
+  - lsp-types
+  - text
+  - containers >=0.7
+  - array >=0.5.3.0
+  - free-foil
+  - bifunctors
+  - kind-generics-th
+  ghc-options:
+  - -fno-defer-type-errors
+
+executables:
+  flan-language-server-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -fno-defer-type-errors
+    dependencies:
+    - flan-language-server

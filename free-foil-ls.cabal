@@ -25,84 +25,31 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
-      BasicLS.BasicLS
-      FoilLS.LanguageServerCache
-      FoilLS.FoilLS
-      AgnosticFoilLS.AgnosticLS
-      AgnosticFoilLS.AgnosticLSLambdaPi
-      AgnosticFoilLSAlt.AgnosticFoilLSAlt
-      AgnosticFoilLSAlt.LambdaPiLSAlt
-      AgnosticLanguageServer.AgnosticLanguageServer
-      AgnosticLanguageServer.AgnosticLanguageServerFlan
-      Common.LambdaPi
-      Common.Flan
-      Common.FlanConversion
-      Common.LanguageServerCache
+      AgnosticLanguageServer
   other-modules:
-      Hsls.AbsHsls
-      Hsls.LexHsls
-      Hsls.ParHsls
-      Hsls.PrintHsls
-      Lampi.AbsLampi
-      Lampi.LayoutLampi
-      Lampi.LexLampi
-      Lampi.ParLampi
-      Lampi.PrintLampi
-      Flan.Abs
-      Flan.Lex
-      Flan.Par
-      Flan.Print
+      AgnosticLanguageServer.AST
+      AgnosticLanguageServer.Cache
+      AgnosticLanguageServer.Classes
+      AgnosticLanguageServer.Common
+      AgnosticLanguageServer.Types
+      AgnosticLanguageServer.Handlers.Definition
+      AgnosticLanguageServer.Handlers.Diagnostics
+      AgnosticLanguageServer.Handlers.Hover
+      AgnosticLanguageServer.Handlers.Rename
+      AgnosticLanguageServer.Handlers.SemanticTokens
+      AgnosticLanguageServer.Handlers.Sync
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -fno-defer-type-errors -fno-defer-type-errors
   build-depends:
       Glob >=0.9.3
-    , IntervalMap >=0.6.2.1
-    , aeson
-    , array >=0.5.3.0
     , base >=4.7 && <5
-    , bifunctors
     , containers >=0.7
     , free-foil
-    , kind-generics-th
     , lens >=4.17
     , lsp
-    , lsp-test
     , lsp-types
     , mtl >=2.2.2
-    , sort
     , stm >=2.5.0.0
-    , template-haskell
     , text
-    , transformers
-  default-language: Haskell2010
-
-executable free-foil-ls-exe
-  main-is: Main.hs
-  other-modules:
-      Paths_free_foil_ls
-  autogen-modules:
-      Paths_free_foil_ls
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -fno-defer-type-errors -threaded -rtsopts -with-rtsopts=-N -fno-defer-type-errors
-  build-depends:
-      base >=4.7 && <5
-    , free-foil-ls
-  default-language: Haskell2010
-
-test-suite free-foil-ls-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_free_foil_ls
-  autogen-modules:
-      Paths_free_foil_ls
-  hs-source-dirs:
-      test
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -fno-defer-type-errors -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.7 && <5
-    , free-foil-ls
   default-language: Haskell2010
