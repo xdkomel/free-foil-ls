@@ -11,4 +11,3 @@ compute
 compute
   (λ (x, ( y , z)). y) ( ( (λ a . a) , (λ b. λ a. b, λ b. λ i. i)) )
   : λ p. p
-

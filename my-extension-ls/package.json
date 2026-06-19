@@ -10,18 +10,18 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:flan"
+    "onLanguage:lampi"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
-        "id": "flan",
+        "id": "lampi",
         "aliases": [
-          "flan"
+          "lampi"
         ],
         "extensions": [
-          ".flan"
+          ".lampi"
         ]
       }
     ]

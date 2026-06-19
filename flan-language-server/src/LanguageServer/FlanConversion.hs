@@ -1,35 +1,29 @@
-{-# LANGUAGE KindSignatures    #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE PatternSynonyms   #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeOperators     #-}
-{-# LANGUAGE DataKinds     #-}
-{-# LANGUAGE ViewPatterns     #-}
-{-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE MultiParamTypeClasses                 #-}
-{-# LANGUAGE PolyKinds                 #-}
-{-# LANGUAGE StandaloneDeriving                 #-}
-{-# LANGUAGE ImpredicativeTypes                 #-}
-{-# LANGUAGE QuantifiedConstraints                 #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 module LanguageServer.FlanConversion where
 
 import Control.Monad.Foil 
 import Control.Monad.Free.Foil 
-import Data.Bifunctor.Sum
-import Data.Bifunctor.TH
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Generics.Kind.TH                (deriveGenericK)
 import qualified Flan.Abs as R
 import qualified Flan.Print as R
-import Data.Coerce (coerce)
 import LanguageServer.Flan
 
 toFlanType :: R.FlanType' a -> FlanType a

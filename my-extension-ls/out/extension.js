@@ -27,7 +27,7 @@ var client;
 function activate(context) {
     // Define the server options
     // This is where you specify how to run YOUR executable
-    const exePath = "/Users/kf/Documents/projects/uni/free-foil-ls/.stack-work/install/aarch64-osx/3146d80ab82fce8dc4fd9dfc1fb9ef15741c5c7341ba15c165ce4a568c264d55/9.10.3/bin/free-foil-ls-exe";
+    const exePath = "/Users/kf/Documents/projects/uni/free-foil-ls/.stack-work/install/aarch64-osx/3146d80ab82fce8dc4fd9dfc1fb9ef15741c5c7341ba15c165ce4a568c264d55/9.10.3/bin/lampi-language-server-exe";
     // const exePath = binPath + "/hs-ls";
     const serverOptions = {
         run: {
@@ -43,19 +43,19 @@ function activate(context) {
     // Define the client options
     // This specifies which files will trigger the language server
     const clientOptions = {
-        documentSelector: [{ scheme: 'file', language: 'flan' }], // e.g., { language: 'python' }
+        documentSelector: [{ scheme: 'file', language: 'lampi' }], // e.g., { language: 'python' }
         synchronize: {
             // Synchronize the settings section to the server
-            configurationSection: 'flan',
+            configurationSection: 'lampi',
             // Notify the server about file changes to contained files
             fileEvents: [
-                vscode_1.workspace.createFileSystemWatcher('**/*.flan'),
+                vscode_1.workspace.createFileSystemWatcher('**/*.lampi'),
             ]
         }
     };
     // Create the language client
-    client = new node_1.LanguageClient('flan', // A unique ID for your server
-    'flan', // The name that will be shown in the output
+    client = new node_1.LanguageClient('lampi', // A unique ID for your server
+    'lampi', // The name that will be shown in the output
     serverOptions, clientOptions);
     // Start the client, which will also start the server
     client.start();

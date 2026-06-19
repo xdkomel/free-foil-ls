@@ -1,23 +1,13 @@
-{-# LANGUAGE KindSignatures    #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE PatternSynonyms   #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeOperators     #-}
-{-# LANGUAGE DataKinds     #-}
-{-# LANGUAGE ViewPatterns     #-}
-{-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE MultiParamTypeClasses                 #-}
-{-# LANGUAGE PolyKinds                 #-}
-{-# LANGUAGE NamedFieldPuns                 #-}
-{-# LANGUAGE QuantifiedConstraints                 #-}
-{-# LANGUAGE FlexibleContexts                 #-}
-{-# LANGUAGE StandaloneDeriving                 #-}
-{-# LANGUAGE InstanceSigs                 #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 
 module LanguageServer.AgnosticLanguageServerFlan where
@@ -225,7 +215,7 @@ instance TypeDeductiveSig (FlanF PosAnn PosAnn) Sig FlanType' Binder where
           msg' = msg ++ patMsg
       in LamF a (NodeAnn a' t msg') body
     LetF a a' (patTyp, expOf) (_, bodyOf) ->
-      let (exp, expTy) = expOf patTyp
+      let (exp, _) = expOf patTyp
           (body, bodyTy) = bodyOf exTy
           (t, msg) = verdict bodyTy
       in LetF a (NodeAnn a' t msg) exp body
@@ -238,7 +228,7 @@ instance TypeDeductiveSig (FlanF PosAnn PosAnn) Sig FlanType' Binder where
           (t, msg) = verdict $ PairType pairTypeAnnEmp lTy rTy
       in PairF a (NodeAnn a' t msg) l r
     IfF a a' pOf xOf yOf ->
-      let (p, pTy) = pOf boolTypeEmp
+      let (p, _) = pOf boolTypeEmp
           (x, xTy) = xOf exTy
           (y, yTy) = yOf exTy
           (bodyTy, errs) = resolveTy xTy yTy

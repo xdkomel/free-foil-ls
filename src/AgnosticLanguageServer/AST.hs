@@ -39,7 +39,9 @@ findNarrowest ::
   , F.Distinct n )
   => Position
   -> F.AST binder sig n
-  -> Maybe (Either (SomePattern binder sig, SomeAST binder sig) (SomeAST binder sig))
+  -> Maybe (Either 
+      (SomePattern binder sig, SomeAST binder sig) 
+      (SomeAST binder sig) )
 findNarrowest = (fmap fst .) . findNarrowest'
   where
     findNarrowest' ::
@@ -50,7 +52,11 @@ findNarrowest = (fmap fst .) . findNarrowest'
       , F.Distinct n )
       => Position
       -> F.AST binder sig n
-      -> Maybe (Either (SomePattern binder sig, SomeAST binder sig) (SomeAST binder sig), Range)
+      -> Maybe 
+          (Either 
+            (SomePattern binder sig, SomeAST binder sig) 
+            (SomeAST binder sig)
+          , Range )
     findNarrowest' pos ast = do
       sig <- case ast of
         F.Var{} -> Nothing
@@ -63,7 +69,8 @@ findNarrowest = (fmap fst .) . findNarrowest'
           in bifoldr
             (\(F.ScopedAST binder a) -> case F.assertDistinct binder of
               F.Distinct ->
-                let narrPat = findNarrowestPat (SomeAST a) pos (SomePattern binder)
+                let narrPat = findNarrowestPat 
+                      (SomeAST a) pos (SomePattern binder)
                     narrNode = findNarrowest' pos a
                 in narr $ narr narrPat narrNode
               )
