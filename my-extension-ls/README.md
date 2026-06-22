@@ -1,71 +1,56 @@
-# my-extension-ls README
+# my-extension-ls
 
-This is the README for your extension "my-extension-ls". After writing up a brief description, we recommend including the following sections.
+A minimal Visual Studio Code extension that hosts a language server built with the `free-foil-ls` library. The extension registers itself for a target language and forwards all LSP traffic to the server process — no language-specific logic lives in the extension itself.
 
-## Features
+Out of the box, it is wired for the **Lampi** language (`.lampi` files). Adapting it to **Flan** (`.flan`) or any other language requires two small edits described below.
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+## 1. Build the language server executable
 
-For example if there is an image subfolder under your extension project workspace:
+Build your language server with either Stack or Cabal from the root of the `free-foil-ls` repository, depending on which build file your server project uses:
 
-\!\[feature X\]\(images/feature-x.png\)
+```bash
+# Stack
+stack build <your-server-package>
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+# Cabal
+cabal build <your-server-package>
+```
 
-## Requirements
+After a successful build, note the path to the produced executable. With Stack you can print it with:
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+```bash
+stack exec -- which <your-server-exe>
+```
 
-## Extension Settings
+## 2. Configure the extension
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+Open `src/extension.ts` and replace the hardcoded path on **line 8** with the path to your executable:
 
-For example:
+```ts
+const exePath = "/path/to/your/language-server-exe"
+```
 
-This extension contributes the following settings:
+Then verify that the language ID is consistent in both files:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+- **`src/extension.ts`** — `documentSelector`, `configurationSection`, `fileEvents` glob, and the two `LanguageClient` constructor arguments all reference the language ID (currently `lampi`).
+- **`package.json`** — `activationEvents`, `contributes.languages[].id`, and `contributes.languages[].extensions` must match the same ID and file extension.
 
-## Known Issues
+For example, to switch to Flan, change `lampi` → `flan` and `*.lampi` → `*.flan` in both files.
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## 3. Compile and run the extension
 
-## Release Notes
+```bash
+npm install
+npm run compile
+```
 
-Users appreciate release notes as you update your extension.
+Then open the `my-extension-ls` folder in VS Code and press **F5** to launch the Extension Development Host.
 
-### 1.0.0
+## 4. Try it out
 
-Initial release of ...
+Open one of the sample workspaces in the Extension Development Host:
 
-### 1.0.1
+- `test-flan/` — contains a `.flan` source file
+- `test-lampi/` — contains `.lampi` source files
 
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+With the extension running you should see go-to-definition, rename, hover with inferred types, squiggly-line diagnostics for type errors and unbound symbols, and syntax highlighting driven by semantic tokens — all provided by the language server, with no additional IDE glue in the extension.
